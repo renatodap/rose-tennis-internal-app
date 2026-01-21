@@ -5,23 +5,31 @@ import { revalidatePath } from 'next/cache'
 import type { Trip, TripStatus, TripRoster } from '@/types/database'
 
 export async function getTrips(): Promise<Trip[]> {
-  const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
+  try {
+    const supabase = await createClient()
+    const today = new Date().toISOString().split('T')[0]
 
-  const { data, error } = await supabase
-    .from('trips')
-    .select(`
-      *,
-      trip_roster (
+    const { data, error } = await supabase
+      .from('trips')
+      .select(`
         *,
-        player:players (id, first_name, last_name, gender)
-      )
-    `)
-    .gte('return_date', today)
-    .order('departure_date', { ascending: true })
+        trip_roster (
+          *,
+          player:players (id, first_name, last_name, gender)
+        )
+      `)
+      .gte('return_date', today)
+      .order('departure_date', { ascending: true })
 
-  if (error) throw error
-  return (data ?? []) as Trip[]
+    if (error) {
+      console.error('Error fetching trips:', error)
+      return []
+    }
+    return (data ?? []) as Trip[]
+  } catch (err) {
+    console.error('Error in getTrips:', err)
+    return []
+  }
 }
 
 export async function getTrip(id: number): Promise<Trip | null> {
