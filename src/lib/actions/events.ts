@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Event, MatchDetails, HomeAway, MatchResult } from '@/types/database'
+import type { Event, MatchDetails } from '@/types/database'
 
 export async function getEvents(filters?: {
   startDate?: string
