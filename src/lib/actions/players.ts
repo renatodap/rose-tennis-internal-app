@@ -9,37 +9,45 @@ type PlayerWithTags = Player & {
 }
 
 export async function getPlayers(filters?: { gender?: Gender; tagId?: number }): Promise<PlayerWithTags[]> {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  let query = supabase
-    .from('players')
-    .select(`
-      *,
-      player_tags (
-        tags (id, name, color)
+    let query = supabase
+      .from('players')
+      .select(`
+        *,
+        player_tags (
+          tags (id, name, color)
+        )
+      `)
+      .eq('is_active', true)
+      .order('last_name')
+
+    if (filters?.gender) {
+      query = query.eq('gender', filters.gender)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching players:', error)
+      return []
+    }
+
+    const players = (data ?? []) as PlayerWithTags[]
+
+    // Filter by tag if specified
+    if (filters?.tagId) {
+      return players.filter(player =>
+        player.player_tags?.some((pt: { tags: Tag }) => pt.tags.id === filters.tagId)
       )
-    `)
-    .eq('is_active', true)
-    .order('last_name')
+    }
 
-  if (filters?.gender) {
-    query = query.eq('gender', filters.gender)
+    return players
+  } catch (err) {
+    console.error('Error in getPlayers:', err)
+    return []
   }
-
-  const { data, error } = await query
-
-  if (error) throw error
-
-  const players = (data ?? []) as PlayerWithTags[]
-
-  // Filter by tag if specified
-  if (filters?.tagId) {
-    return players.filter(player =>
-      player.player_tags?.some((pt: { tags: Tag }) => pt.tags.id === filters.tagId)
-    )
-  }
-
-  return players
 }
 
 export async function getPlayer(id: number): Promise<PlayerWithTags | null> {

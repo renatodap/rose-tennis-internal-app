@@ -5,19 +5,27 @@ import { revalidatePath } from 'next/cache'
 import type { Form, FormQuestion, FormResponse } from '@/types/database'
 
 export async function getForms(): Promise<Form[]> {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('forms')
-    .select(`
-      *,
-      form_questions (*)
-    `)
-    .eq('is_active', true)
-    .order('due_date', { ascending: true, nullsFirst: false })
+    const { data, error } = await supabase
+      .from('forms')
+      .select(`
+        *,
+        form_questions (*)
+      `)
+      .eq('is_active', true)
+      .order('due_date', { ascending: true, nullsFirst: false })
 
-  if (error) throw error
-  return (data ?? []) as Form[]
+    if (error) {
+      console.error('Error fetching forms:', error)
+      return []
+    }
+    return (data ?? []) as Form[]
+  } catch (err) {
+    console.error('Error in getForms:', err)
+    return []
+  }
 }
 
 export async function getForm(id: number): Promise<Form | null> {

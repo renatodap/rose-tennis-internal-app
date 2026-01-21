@@ -5,31 +5,39 @@ import { revalidatePath } from 'next/cache'
 import type { Announcement } from '@/types/database'
 
 export async function getAnnouncements(filters?: { gender?: 'male' | 'female' }): Promise<Announcement[]> {
-  const supabase = await createClient()
-  const now = new Date().toISOString()
+  try {
+    const supabase = await createClient()
+    const now = new Date().toISOString()
 
-  const query = supabase
-    .from('announcements')
-    .select('*')
-    .lte('publish_at', now)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .order('priority', { ascending: false })
-    .order('publish_at', { ascending: false })
+    const query = supabase
+      .from('announcements')
+      .select('*')
+      .lte('publish_at', now)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order('priority', { ascending: false })
+      .order('publish_at', { ascending: false })
 
-  const { data, error } = await query
+    const { data, error } = await query
 
-  if (error) throw error
+    if (error) {
+      console.error('Error fetching announcements:', error)
+      return []
+    }
 
-  const announcements = (data ?? []) as Announcement[]
+    const announcements = (data ?? []) as Announcement[]
 
-  // Filter by gender if specified
-  if (filters?.gender) {
-    return announcements.filter(announcement =>
-      filters.gender === 'male' ? announcement.for_mens : announcement.for_womens
-    )
+    // Filter by gender if specified
+    if (filters?.gender) {
+      return announcements.filter(announcement =>
+        filters.gender === 'male' ? announcement.for_mens : announcement.for_womens
+      )
+    }
+
+    return announcements
+  } catch (err) {
+    console.error('Error in getAnnouncements:', err)
+    return []
   }
-
-  return announcements
 }
 
 export async function getRecentAnnouncements(limit: number = 3): Promise<Announcement[]> {
