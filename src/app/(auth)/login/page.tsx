@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
-import { checkEmailWhitelist, cleanupOrphanedUser } from '@/lib/actions/auth'
+import { checkEmailWhitelist, createUserManually } from '@/lib/actions/auth'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -63,72 +63,23 @@ export default function LoginPage() {
         return
       }
 
-      // Sign up
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+      // Create user using Admin API (bypasses the problematic trigger)
+      const result = await createUserManually(email, password)
 
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          setError('An account with this email already exists. Please sign in instead.')
-          setLoading(false)
-          return
-        }
-
-        // Handle database trigger errors (orphaned user state)
-        if (signUpError.message.includes('Database error')) {
-          // Try to cleanup orphaned user and retry
-          const cleanup = await cleanupOrphanedUser(email)
-          if (cleanup.success && cleanup.message.includes('try again')) {
-            // Retry signup after cleanup
-            const { error: retryError } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
-              },
-            })
-
-            if (!retryError) {
-              // Success on retry - continue to auto sign in
-              const { error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-              })
-              if (!signInError) {
-                router.push('/')
-                router.refresh()
-                return
-              }
-              setError('Account created! Please check your email to confirm, then sign in.')
-              setMode('signin')
-              setLoading(false)
-              return
-            }
-          }
-          setError(cleanup.message || 'Failed to create account. Please try again.')
-          setLoading(false)
-          return
-        }
-
-        setError(signUpError.message)
+      if (!result.success) {
+        setError(result.message)
         setLoading(false)
         return
       }
 
-      // Auto sign in after signup (Supabase confirms email by default in dev)
+      // Sign in after successful account creation
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        // If sign in fails, account was created but needs email confirmation
-        setError('Account created! Please check your email to confirm, then sign in.')
+        setError('Account created! Please sign in.')
         setMode('signin')
       } else {
         router.push('/')

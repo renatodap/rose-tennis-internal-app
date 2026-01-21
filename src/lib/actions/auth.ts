@@ -57,6 +57,92 @@ export async function checkEmailWhitelist(email: string): Promise<boolean> {
   }
 }
 
+// Create user manually using Admin API (bypasses the failing trigger)
+export async function createUserManually(email: string, password: string): Promise<{ success: boolean; message: string; userId?: string }> {
+  const supabaseAdmin = getAdminClient()
+  if (!supabaseAdmin) {
+    return { success: false, message: 'Admin client not available' }
+  }
+
+  try {
+    // Check if user already exists
+    const { data: users } = await supabaseAdmin.auth.admin.listUsers()
+    const existingUser = users?.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+
+    if (existingUser) {
+      // Check if they have a profile
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('id', existingUser.id)
+        .single()
+
+      if (profile) {
+        return { success: false, message: 'Account already exists. Please sign in.' }
+      }
+
+      // User exists but no profile - delete and recreate
+      await supabaseAdmin.auth.admin.deleteUser(existingUser.id)
+    }
+
+    // Find the player/staff record
+    const { data: player } = await supabaseAdmin
+      .from('players')
+      .select('id, is_captain')
+      .eq('email', email.toLowerCase())
+      .single()
+
+    const { data: staff } = await supabaseAdmin
+      .from('staff')
+      .select('id, role')
+      .eq('email', email.toLowerCase())
+      .single()
+
+    // Determine role
+    let role = 'pending'
+    if (staff) {
+      role = staff.role === 'head_coach' ? 'admin' : 'coach'
+    } else if (player) {
+      role = player.is_captain ? 'captain' : 'player'
+    }
+
+    // Create user with Admin API (this bypasses the trigger)
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirm email
+    })
+
+    if (createError || !newUser.user) {
+      console.error('Error creating user:', createError)
+      return { success: false, message: createError?.message || 'Failed to create user' }
+    }
+
+    // Manually create the profile (since trigger might be failing)
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: newUser.user.id,
+        email: email.toLowerCase(),
+        role,
+        player_id: player?.id || null,
+        staff_id: staff?.id || null,
+      })
+
+    if (profileError) {
+      console.error('Error creating profile:', profileError)
+      // Try to cleanup the user we just created
+      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
+      return { success: false, message: `Profile creation failed: ${profileError.message}` }
+    }
+
+    return { success: true, message: 'Account created successfully!', userId: newUser.user.id }
+  } catch (err) {
+    console.error('Error in createUserManually:', err)
+    return { success: false, message: 'An unexpected error occurred' }
+  }
+}
+
 // Clean up any orphaned auth user for an email (helps with retry after failed signup)
 export async function cleanupOrphanedUser(email: string): Promise<{ success: boolean; message: string }> {
   const supabaseAdmin = getAdminClient()
