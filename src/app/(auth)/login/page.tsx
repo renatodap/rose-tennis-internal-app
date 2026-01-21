@@ -1,21 +1,61 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Loader2, CheckCircle } from 'lucide-react'
+import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
+
+type AuthMode = 'signin' | 'signup'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<AuthMode>('signin')
   const supabase = createClient()
+  const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  // Password validation: 8+ chars, at least 1 special character
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) {
+      return 'Password must be at least 8 characters'
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~;']/.test(pwd)) {
+      return 'Password must contain at least 1 special character'
+    }
+    return null
+  }
+
+  // Check if email is whitelisted (exists in players or staff)
+  const checkEmailWhitelist = async (checkEmail: string): Promise<boolean> => {
+    const { data, error } = await supabase.rpc('is_email_whitelisted', {
+      check_email: checkEmail
+    })
+    if (error) {
+      console.error('Whitelist check error:', error)
+      // If function doesn't exist yet, fall back to direct check
+      const { data: players } = await supabase
+        .from('players')
+        .select('id')
+        .eq('email', checkEmail)
+        .single()
+      const { data: staff } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('email', checkEmail)
+        .single()
+      return !!(players || staff)
+    }
+    return !!data
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -27,50 +67,76 @@ export default function LoginPage() {
       return
     }
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    if (mode === 'signup') {
+      // Validate password
+      const pwdError = validatePassword(password)
+      if (pwdError) {
+        setError(pwdError)
+        setLoading(false)
+        return
+      }
 
-    if (error) {
-      setError(error.message)
+      // Check whitelist
+      const isWhitelisted = await checkEmailWhitelist(email)
+      if (!isWhitelisted) {
+        setError('Email not found in team roster. Contact your coach if you believe this is an error.')
+        setLoading(false)
+        return
+      }
+
+      // Sign up
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
+          setError('An account with this email already exists. Please sign in instead.')
+        } else {
+          setError(signUpError.message)
+        }
+        setLoading(false)
+        return
+      }
+
+      // Auto sign in after signup (Supabase confirms email by default in dev)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        // If sign in fails, account was created but needs email confirmation
+        setError('Account created! Please check your email to confirm, then sign in.')
+        setMode('signin')
+      } else {
+        router.push('/')
+        router.refresh()
+      }
     } else {
-      setSent(true)
-    }
-    setLoading(false)
-  }
+      // Sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-  if (sent) {
-    return (
-      <Card className="w-full max-w-sm border-rose-silver/30">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-          </div>
-          <CardTitle className="text-xl">Check your email</CardTitle>
-          <CardDescription>
-            We sent a magic link to <span className="font-medium text-foreground">{email}</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground text-center">
-            Click the link in the email to sign in. The link will expire in 1 hour.
-          </p>
-          <Button
-            variant="ghost"
-            className="w-full mt-4"
-            onClick={() => {
-              setSent(false)
-              setEmail('')
-            }}
-          >
-            Use a different email
-          </Button>
-        </CardContent>
-      </Card>
-    )
+      if (signInError) {
+        if (signInError.message.includes('Invalid login')) {
+          setError('Invalid email or password')
+        } else {
+          setError(signInError.message)
+        }
+      } else {
+        router.push('/')
+        router.refresh()
+      }
+    }
+
+    setLoading(false)
   }
 
   return (
@@ -81,11 +147,11 @@ export default function LoginPage() {
         </div>
         <CardTitle className="text-xl">Rose-Hulman Tennis</CardTitle>
         <CardDescription>
-          Sign in with your Rose-Hulman email
+          {mode === 'signin' ? 'Sign in to your account' : 'Create your account'}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
@@ -98,23 +164,81 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-9"
                 required
+                autoComplete="email"
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder={mode === 'signup' ? '8+ chars, 1 special char' : 'Enter your password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-9 pr-9"
+                required
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {mode === 'signup' && (
+              <p className="text-xs text-muted-foreground">
+                Must be 8+ characters with at least 1 special character
+              </p>
+            )}
+          </div>
+
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
+
           <Button type="submit" className="w-full bg-rose-red hover:bg-rose-red/90" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending link...
+                {mode === 'signin' ? 'Signing in...' : 'Creating account...'}
               </>
             ) : (
-              'Send magic link'
+              mode === 'signin' ? 'Sign in' : 'Create account'
             )}
           </Button>
         </form>
+
+        <div className="mt-4 text-center text-sm">
+          {mode === 'signin' ? (
+            <p className="text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <button
+                type="button"
+                onClick={() => { setMode('signup'); setError(null); }}
+                className="text-rose-red hover:underline font-medium"
+              >
+                Sign up
+              </button>
+            </p>
+          ) : (
+            <p className="text-muted-foreground">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => { setMode('signin'); setError(null); }}
+                className="text-rose-red hover:underline font-medium"
+              >
+                Sign in
+              </button>
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
