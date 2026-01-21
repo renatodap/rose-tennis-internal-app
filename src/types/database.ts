@@ -1,4 +1,4 @@
-export type UserRole = 'player' | 'coach' | 'admin' | 'pending'
+export type UserRole = 'player' | 'coach' | 'admin' | 'captain' | 'pending'
 export type Gender = 'male' | 'female'
 export type ClassYear = 'Fr' | 'So' | 'Jr' | 'Sr'
 export type EventType = 'practice' | 'match' | 'fitness' | 'meeting' | 'scrimmage' | 'trip' | 'other'
