@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -16,14 +16,24 @@ import {
   LogOut,
   Loader2,
   ChevronRight,
-  Key
+  Key,
+  RefreshCw
 } from 'lucide-react'
 
 export default function ProfilePage() {
   const { user, profile, loading, isCoach, isAdmin, isPlayer, isCaptain } = useUser()
   const [signingOut, setSigningOut] = useState(false)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
   const supabase = createClient()
   const router = useRouter()
+
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => setLoadingTimeout(true), 5000)
+      return () => clearTimeout(timeout)
+    }
+    setLoadingTimeout(false)
+  }, [loading])
 
   const handleSignOut = async () => {
     setSigningOut(true)
@@ -34,15 +44,56 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-4 flex items-center justify-center min-h-[50vh]">
+      <div className="p-4 flex flex-col items-center justify-center min-h-[50vh] gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-rose-red" />
+        {loadingTimeout && (
+          <div className="text-center space-y-3">
+            <p className="text-sm text-muted-foreground">Taking longer than expected...</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh page
+            </Button>
+          </div>
+        )}
       </div>
     )
   }
 
   if (!user) {
-    router.push('/login')
-    return null
+    return (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-rose-red/10 rounded-md">
+            <User className="h-6 w-6 text-rose-red" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold">Profile</h1>
+            <p className="text-sm text-muted-foreground">Sign in to view your account</p>
+          </div>
+        </div>
+
+        <Card className="border-rose-silver/30">
+          <CardHeader>
+            <CardTitle className="text-lg">Not signed in</CardTitle>
+            <CardDescription>
+              Sign in with your Rose-Hulman email to access your profile and team features.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/login">
+              <Button className="w-full bg-rose-red hover:bg-rose-red/90">
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign in
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   const getRoleBadge = () => {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Calendar, Bell, Settings } from 'lucide-react'
+import { Home, Calendar, Bell, Settings, User, LogIn } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/use-user'
 
@@ -16,12 +16,19 @@ const adminItem = { href: '/admin', label: 'Admin', icon: Settings }
 
 export function BottomNav() {
   const pathname = usePathname()
-  const { isCoach, isAdmin } = useUser()
+  const { isCoach, isAdmin, isAuthenticated } = useUser()
 
   const items = [...navItems]
   if (isCoach || isAdmin) {
     items.push(adminItem)
   }
+
+  // Add Profile/Login as last item
+  items.push({
+    href: isAuthenticated ? '/profile' : '/login',
+    label: isAuthenticated ? 'Profile' : 'Sign In',
+    icon: isAuthenticated ? User : LogIn,
+  })
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-rose-silver/30">

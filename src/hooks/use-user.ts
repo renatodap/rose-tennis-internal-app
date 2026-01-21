@@ -36,7 +36,7 @@ export function useUser(): UseUserReturn {
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single()
+            .maybeSingle()
           const typedProfile = profileData as Profile | null
           setProfile(typedProfile)
 
@@ -46,8 +46,10 @@ export function useUser(): UseUserReturn {
               .from('players')
               .select('*')
               .eq('id', typedProfile.player_id)
-              .single()
+              .maybeSingle()
             setPlayer(playerData as Player | null)
+          } else {
+            setPlayer(null)
           }
         }
       } catch (error) {
@@ -68,7 +70,7 @@ export function useUser(): UseUserReturn {
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
-              .single()
+              .maybeSingle()
             const typedProfile = profileData as Profile | null
             setProfile(typedProfile)
 
@@ -77,7 +79,7 @@ export function useUser(): UseUserReturn {
                 .from('players')
                 .select('*')
                 .eq('id', typedProfile.player_id)
-                .single()
+                .maybeSingle()
               setPlayer(playerData as Player | null)
             } else {
               setPlayer(null)
