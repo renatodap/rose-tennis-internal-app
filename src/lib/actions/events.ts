@@ -45,22 +45,30 @@ export async function getEvents(filters?: {
 }
 
 export async function getUpcomingEvents(limit: number = 5): Promise<Event[]> {
-  const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
+  try {
+    const supabase = await createClient()
+    const today = new Date().toISOString().split('T')[0]
 
-  const { data, error } = await supabase
-    .from('events')
-    .select(`
-      *,
-      match_details (*)
-    `)
-    .gte('event_date', today)
-    .order('event_date', { ascending: true })
-    .order('start_time', { ascending: true })
-    .limit(limit)
+    const { data, error } = await supabase
+      .from('events')
+      .select(`
+        *,
+        match_details (*)
+      `)
+      .gte('event_date', today)
+      .order('event_date', { ascending: true })
+      .order('start_time', { ascending: true })
+      .limit(limit)
 
-  if (error) throw error
-  return (data ?? []) as Event[]
+    if (error) {
+      console.error('Error fetching upcoming events:', error)
+      return []
+    }
+    return (data ?? []) as Event[]
+  } catch (err) {
+    console.error('Error in getUpcomingEvents:', err)
+    return []
+  }
 }
 
 export async function getEvent(id: number): Promise<Event> {

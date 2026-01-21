@@ -33,20 +33,28 @@ export async function getAnnouncements(filters?: { gender?: 'male' | 'female' })
 }
 
 export async function getRecentAnnouncements(limit: number = 3): Promise<Announcement[]> {
-  const supabase = await createClient()
-  const now = new Date().toISOString()
+  try {
+    const supabase = await createClient()
+    const now = new Date().toISOString()
 
-  const { data, error } = await supabase
-    .from('announcements')
-    .select('*')
-    .lte('publish_at', now)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .order('priority', { ascending: false })
-    .order('publish_at', { ascending: false })
-    .limit(limit)
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .lte('publish_at', now)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order('priority', { ascending: false })
+      .order('publish_at', { ascending: false })
+      .limit(limit)
 
-  if (error) throw error
-  return (data ?? []) as Announcement[]
+    if (error) {
+      console.error('Error fetching announcements:', error)
+      return []
+    }
+    return (data ?? []) as Announcement[]
+  } catch (err) {
+    console.error('Error in getRecentAnnouncements:', err)
+    return []
+  }
 }
 
 export async function createAnnouncement(announcementData: Omit<Announcement, 'id' | 'created_at'>) {
