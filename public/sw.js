@@ -1,13 +1,12 @@
 // Rose-Hulman Tennis App - Service Worker
-const CACHE_NAME = 'rhit-tennis-v1';
+const CACHE_NAME = 'rhit-tennis-v2';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
   '/',
   '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/icons/icon.svg',
 ];
 
 // Install event - cache core assets
@@ -84,8 +83,8 @@ self.addEventListener('push', (event) => {
     const data = event.data.json();
     const options = {
       body: data.body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      icon: '/icons/icon.svg',
+      badge: '/icons/icon.svg',
       vibrate: [100, 50, 100],
       data: {
         url: data.url || '/',

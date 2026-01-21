@@ -9,39 +9,47 @@ export async function getEvents(filters?: {
   endDate?: string
   gender?: 'male' | 'female'
 }): Promise<Event[]> {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  let query = supabase
-    .from('events')
-    .select(`
-      *,
-      match_details (*)
-    `)
-    .order('event_date', { ascending: true })
-    .order('start_time', { ascending: true })
+    let query = supabase
+      .from('events')
+      .select(`
+        *,
+        match_details (*)
+      `)
+      .order('event_date', { ascending: true })
+      .order('start_time', { ascending: true })
 
-  if (filters?.startDate) {
-    query = query.gte('event_date', filters.startDate)
+    if (filters?.startDate) {
+      query = query.gte('event_date', filters.startDate)
+    }
+
+    if (filters?.endDate) {
+      query = query.lte('event_date', filters.endDate)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Error fetching events:', error)
+      return []
+    }
+
+    const events = (data ?? []) as Event[]
+
+    // Filter by gender if specified
+    if (filters?.gender) {
+      return events.filter(event =>
+        filters.gender === 'male' ? event.for_mens : event.for_womens
+      )
+    }
+
+    return events
+  } catch (err) {
+    console.error('Error in getEvents:', err)
+    return []
   }
-
-  if (filters?.endDate) {
-    query = query.lte('event_date', filters.endDate)
-  }
-
-  const { data, error } = await query
-
-  if (error) throw error
-
-  const events = (data ?? []) as Event[]
-
-  // Filter by gender if specified
-  if (filters?.gender) {
-    return events.filter(event =>
-      filters.gender === 'male' ? event.for_mens : event.for_womens
-    )
-  }
-
-  return events
 }
 
 export async function getUpcomingEvents(limit: number = 5): Promise<Event[]> {

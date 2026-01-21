@@ -64,7 +64,7 @@ export function useUser(): UseUserReturn {
     user,
     profile,
     loading,
-    isCoach: profile?.role === 'coach' || profile?.role === 'admin',
+    isCoach: profile?.role === 'coach' || profile?.role === 'admin' || profile?.role === 'captain',
     isAdmin: profile?.role === 'admin',
     isPlayer: profile?.role === 'player',
   }
