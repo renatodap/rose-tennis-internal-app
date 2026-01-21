@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
-import { checkEmailWhitelist } from '@/lib/actions/auth'
+import { checkEmailWhitelist, cleanupOrphanedUser } from '@/lib/actions/auth'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -75,9 +75,47 @@ export default function LoginPage() {
       if (signUpError) {
         if (signUpError.message.includes('already registered')) {
           setError('An account with this email already exists. Please sign in instead.')
-        } else {
-          setError(signUpError.message)
+          setLoading(false)
+          return
         }
+
+        // Handle database trigger errors (orphaned user state)
+        if (signUpError.message.includes('Database error')) {
+          // Try to cleanup orphaned user and retry
+          const cleanup = await cleanupOrphanedUser(email)
+          if (cleanup.success && cleanup.message.includes('try again')) {
+            // Retry signup after cleanup
+            const { error: retryError } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+              },
+            })
+
+            if (!retryError) {
+              // Success on retry - continue to auto sign in
+              const { error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+              })
+              if (!signInError) {
+                router.push('/')
+                router.refresh()
+                return
+              }
+              setError('Account created! Please check your email to confirm, then sign in.')
+              setMode('signin')
+              setLoading(false)
+              return
+            }
+          }
+          setError(cleanup.message || 'Failed to create account. Please try again.')
+          setLoading(false)
+          return
+        }
+
+        setError(signUpError.message)
         setLoading(false)
         return
       }
