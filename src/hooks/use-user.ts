@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import type { Profile, Player } from '@/types/database'
@@ -22,83 +22,98 @@ export function useUser(): UseUserReturn {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [player, setPlayer] = useState<Player | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    const getUser = async () => {
+    mountedRef.current = true
+    const supabase = createClient()
+
+    const fetchUserData = async (authUser: User | null) => {
+      if (!mountedRef.current) return
+
+      if (!authUser) {
+        setUser(null)
+        setProfile(null)
+        setPlayer(null)
+        setLoading(false)
+        return
+      }
+
+      setUser(authUser)
+
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        setUser(user)
+        // Get profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .maybeSingle()
 
-        if (user) {
-          // Get profile
-          const { data: profileData } = await supabase
-            .from('profiles')
+        if (profileError) {
+          console.error('Profile fetch error:', profileError)
+        }
+
+        if (!mountedRef.current) return
+
+        const typedProfile = profileData as Profile | null
+        setProfile(typedProfile)
+
+        // If profile has player_id, get player data
+        if (typedProfile?.player_id) {
+          const { data: playerData, error: playerError } = await supabase
+            .from('players')
             .select('*')
-            .eq('id', user.id)
+            .eq('id', typedProfile.player_id)
             .maybeSingle()
-          const typedProfile = profileData as Profile | null
-          setProfile(typedProfile)
 
-          // If profile has player_id, get player data to check is_captain
-          if (typedProfile?.player_id) {
-            const { data: playerData } = await supabase
-              .from('players')
-              .select('*')
-              .eq('id', typedProfile.player_id)
-              .maybeSingle()
-            setPlayer(playerData as Player | null)
-          } else {
-            setPlayer(null)
+          if (playerError) {
+            console.error('Player fetch error:', playerError)
           }
+
+          if (!mountedRef.current) return
+          setPlayer(playerData as Player | null)
+        } else {
+          setPlayer(null)
         }
       } catch (error) {
-        console.error('Error fetching user:', error)
+        console.error('Error fetching user data:', error)
       } finally {
-        setLoading(false)
+        if (mountedRef.current) {
+          setLoading(false)
+        }
       }
     }
 
-    getUser()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          try {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
-            const typedProfile = profileData as Profile | null
-            setProfile(typedProfile)
-
-            if (typedProfile?.player_id) {
-              const { data: playerData } = await supabase
-                .from('players')
-                .select('*')
-                .eq('id', typedProfile.player_id)
-                .maybeSingle()
-              setPlayer(playerData as Player | null)
-            } else {
-              setPlayer(null)
-            }
-          } catch (error) {
-            console.error('Error fetching profile:', error)
-          }
-        } else {
-          setProfile(null)
-          setPlayer(null)
+    // Initial fetch
+    const initAuth = async () => {
+      try {
+        const { data: { user: authUser }, error } = await supabase.auth.getUser()
+        if (error) {
+          console.error('Auth error:', error)
         }
-        setLoading(false)
+        await fetchUserData(authUser)
+      } catch (error) {
+        console.error('Init auth error:', error)
+        if (mountedRef.current) {
+          setLoading(false)
+        }
+      }
+    }
+
+    initAuth()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!mountedRef.current) return
+        await fetchUserData(session?.user ?? null)
       }
     )
 
     return () => {
+      mountedRef.current = false
       subscription.unsubscribe()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const isAdmin = profile?.role === 'admin'
