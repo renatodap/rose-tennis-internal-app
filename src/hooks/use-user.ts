@@ -84,10 +84,26 @@ export function useUser(): UseUserReturn {
       }
     }
 
+    // Timeout wrapper to prevent getUser() from hanging indefinitely
+    // Known Supabase bug: https://github.com/supabase/supabase/issues/35754
+    const getAuthWithTimeout = async (timeoutMs: number = 5000) => {
+      const timeoutPromise = new Promise<{ data: { user: null }, error: Error }>((resolve) => {
+        setTimeout(() => {
+          console.warn('Auth getUser() timed out after', timeoutMs, 'ms')
+          resolve({ data: { user: null }, error: new Error('Auth timeout') })
+        }, timeoutMs)
+      })
+
+      return Promise.race([
+        supabase.auth.getUser(),
+        timeoutPromise
+      ])
+    }
+
     // Initial fetch
     const initAuth = async () => {
       try {
-        const { data: { user: authUser }, error } = await supabase.auth.getUser()
+        const { data: { user: authUser }, error } = await getAuthWithTimeout(5000)
         if (error) {
           console.error('Auth error:', error)
         }
