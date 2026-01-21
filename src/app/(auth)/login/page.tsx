@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
+import { checkEmailWhitelist } from '@/lib/actions/auth'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -31,25 +32,6 @@ export default function LoginPage() {
       return 'Password must contain at least 1 special character'
     }
     return null
-  }
-
-  // Check if email is whitelisted (exists in players or staff)
-  const checkEmailWhitelist = async (checkEmail: string): Promise<boolean> => {
-    const { data: player } = await supabase
-      .from('players')
-      .select('id')
-      .eq('email', checkEmail)
-      .single()
-
-    if (player) return true
-
-    const { data: staffMember } = await supabase
-      .from('staff')
-      .select('id')
-      .eq('email', checkEmail)
-      .single()
-
-    return !!staffMember
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
