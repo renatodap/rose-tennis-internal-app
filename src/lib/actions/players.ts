@@ -2,9 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Player, Gender } from '@/types/database'
+import type { Player, Gender, Tag, PlayerTag } from '@/types/database'
 
-export async function getPlayers(filters?: { gender?: Gender; tagId?: number }) {
+type PlayerWithTags = Player & {
+  player_tags?: { tags: Tag }[]
+}
+
+export async function getPlayers(filters?: { gender?: Gender; tagId?: number }): Promise<PlayerWithTags[]> {
   const supabase = await createClient()
 
   let query = supabase
@@ -26,17 +30,19 @@ export async function getPlayers(filters?: { gender?: Gender; tagId?: number }) 
 
   if (error) throw error
 
+  const players = (data ?? []) as PlayerWithTags[]
+
   // Filter by tag if specified
-  if (filters?.tagId && data) {
-    return data.filter(player =>
-      player.player_tags?.some(pt => pt.tags.id === filters.tagId)
+  if (filters?.tagId) {
+    return players.filter(player =>
+      player.player_tags?.some((pt: { tags: Tag }) => pt.tags.id === filters.tagId)
     )
   }
 
-  return data
+  return players
 }
 
-export async function getPlayer(id: number) {
+export async function getPlayer(id: number): Promise<PlayerWithTags | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -51,30 +57,30 @@ export async function getPlayer(id: number) {
     .single()
 
   if (error) throw error
-  return data
+  return data as PlayerWithTags | null
 }
 
-export async function createPlayer(data: Omit<Player, 'id' | 'created_at' | 'player_tags'>) {
+export async function createPlayer(playerData: Omit<Player, 'id' | 'created_at' | 'player_tags'>): Promise<Player> {
   const supabase = await createClient()
 
   const { data: player, error } = await supabase
     .from('players')
-    .insert(data)
+    .insert(playerData as never)
     .select()
     .single()
 
   if (error) throw error
   revalidatePath('/roster')
   revalidatePath('/admin/players')
-  return player
+  return player as Player
 }
 
-export async function updatePlayer(id: number, data: Partial<Player>) {
+export async function updatePlayer(id: number, playerData: Partial<Player>) {
   const supabase = await createClient()
 
   const { error } = await supabase
     .from('players')
-    .update(data)
+    .update(playerData as never)
     .eq('id', id)
 
   if (error) throw error
@@ -86,9 +92,11 @@ export async function updatePlayer(id: number, data: Partial<Player>) {
 export async function addPlayerTag(playerId: number, tagId: number) {
   const supabase = await createClient()
 
+  const tagData: PlayerTag = { player_id: playerId, tag_id: tagId }
+
   const { error } = await supabase
     .from('player_tags')
-    .insert({ player_id: playerId, tag_id: tagId })
+    .insert(tagData as never)
 
   if (error) throw error
   revalidatePath('/roster')

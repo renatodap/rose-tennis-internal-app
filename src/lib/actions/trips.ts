@@ -2,9 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Trip, TripStatus } from '@/types/database'
+import type { Trip, TripStatus, TripRoster } from '@/types/database'
 
-export async function getTrips() {
+export async function getTrips(): Promise<Trip[]> {
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
 
@@ -21,10 +21,10 @@ export async function getTrips() {
     .order('departure_date', { ascending: true })
 
   if (error) throw error
-  return data
+  return (data ?? []) as Trip[]
 }
 
-export async function getTrip(id: number) {
+export async function getTrip(id: number): Promise<Trip | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -40,7 +40,7 @@ export async function getTrip(id: number) {
     .single()
 
   if (error) throw error
-  return data
+  return data as Trip | null
 }
 
 export async function updateTripRosterStatus(
@@ -50,44 +50,48 @@ export async function updateTripRosterStatus(
 ) {
   const supabase = await createClient()
 
+  const rosterData: Omit<TripRoster, 'player'> = {
+    trip_id: tripId,
+    player_id: playerId,
+    status,
+  }
+
   const { error } = await supabase
     .from('trip_roster')
-    .upsert({
-      trip_id: tripId,
-      player_id: playerId,
-      status,
-    })
+    .upsert(rosterData as never)
 
   if (error) throw error
 
   revalidatePath('/trips')
 }
 
-export async function createTrip(data: Omit<Trip, 'id' | 'created_at' | 'trip_roster'>) {
+export async function createTrip(tripData: Omit<Trip, 'id' | 'created_at' | 'trip_roster'>): Promise<Trip> {
   const supabase = await createClient()
 
   const { data: trip, error } = await supabase
     .from('trips')
-    .insert(data)
+    .insert(tripData as never)
     .select()
     .single()
 
   if (error) throw error
 
   revalidatePath('/trips')
-  return trip
+  return trip as Trip
 }
 
 export async function addPlayerToTrip(tripId: number, playerId: number) {
   const supabase = await createClient()
 
+  const rosterData: Omit<TripRoster, 'player'> = {
+    trip_id: tripId,
+    player_id: playerId,
+    status: 'pending',
+  }
+
   const { error } = await supabase
     .from('trip_roster')
-    .insert({
-      trip_id: tripId,
-      player_id: playerId,
-      status: 'pending',
-    })
+    .insert(rosterData as never)
 
   if (error) throw error
 

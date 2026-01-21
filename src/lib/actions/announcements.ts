@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { Announcement } from '@/types/database'
 
-export async function getAnnouncements(filters?: { gender?: 'male' | 'female' }) {
+export async function getAnnouncements(filters?: { gender?: 'male' | 'female' }): Promise<Announcement[]> {
   const supabase = await createClient()
   const now = new Date().toISOString()
 
@@ -20,17 +20,19 @@ export async function getAnnouncements(filters?: { gender?: 'male' | 'female' })
 
   if (error) throw error
 
+  const announcements = (data ?? []) as Announcement[]
+
   // Filter by gender if specified
-  if (filters?.gender && data) {
-    return data.filter(announcement =>
+  if (filters?.gender) {
+    return announcements.filter(announcement =>
       filters.gender === 'male' ? announcement.for_mens : announcement.for_womens
     )
   }
 
-  return data
+  return announcements
 }
 
-export async function getRecentAnnouncements(limit: number = 3) {
+export async function getRecentAnnouncements(limit: number = 3): Promise<Announcement[]> {
   const supabase = await createClient()
   const now = new Date().toISOString()
 
@@ -44,15 +46,15 @@ export async function getRecentAnnouncements(limit: number = 3) {
     .limit(limit)
 
   if (error) throw error
-  return data
+  return (data ?? []) as Announcement[]
 }
 
-export async function createAnnouncement(data: Omit<Announcement, 'id' | 'created_at'>) {
+export async function createAnnouncement(announcementData: Omit<Announcement, 'id' | 'created_at'>) {
   const supabase = await createClient()
 
   const { data: announcement, error } = await supabase
     .from('announcements')
-    .insert(data)
+    .insert(announcementData as never)
     .select()
     .single()
 
@@ -60,15 +62,15 @@ export async function createAnnouncement(data: Omit<Announcement, 'id' | 'create
 
   revalidatePath('/updates')
   revalidatePath('/')
-  return announcement
+  return announcement as Announcement
 }
 
-export async function updateAnnouncement(id: number, data: Partial<Announcement>) {
+export async function updateAnnouncement(id: number, announcementData: Partial<Announcement>) {
   const supabase = await createClient()
 
   const { error } = await supabase
     .from('announcements')
-    .update(data)
+    .update(announcementData as never)
     .eq('id', id)
 
   if (error) throw error

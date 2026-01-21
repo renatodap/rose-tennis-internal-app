@@ -111,7 +111,7 @@ export default async function FormPage({ params }: FormPageProps) {
           </CardHeader>
           <CardContent>
             <FormRenderer
-              form={form}
+              form={{ ...form, form_questions: form.form_questions ?? [] }}
               playerId={profile.player_id}
               existingResponse={existingResponse}
             />

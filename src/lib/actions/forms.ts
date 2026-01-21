@@ -2,9 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Form, FormQuestion } from '@/types/database'
+import type { Form, FormQuestion, FormResponse } from '@/types/database'
 
-export async function getForms() {
+export async function getForms(): Promise<Form[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -17,10 +17,10 @@ export async function getForms() {
     .order('due_date', { ascending: true, nullsFirst: false })
 
   if (error) throw error
-  return data
+  return (data ?? []) as Form[]
 }
 
-export async function getForm(id: number) {
+export async function getForm(id: number): Promise<Form | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -34,61 +34,67 @@ export async function getForm(id: number) {
 
   if (error) throw error
 
+  const form = data as Form | null
+
   // Sort questions by sort_order
-  if (data?.form_questions) {
-    data.form_questions.sort((a, b) => a.sort_order - b.sort_order)
+  if (form?.form_questions) {
+    form.form_questions.sort((a: FormQuestion, b: FormQuestion) => a.sort_order - b.sort_order)
   }
 
-  return data
+  return form
 }
 
 export async function createForm(
-  data: Omit<Form, 'id' | 'created_at' | 'form_questions'>,
+  formData: Omit<Form, 'id' | 'created_at' | 'form_questions'>,
   questions: Omit<FormQuestion, 'id' | 'form_id'>[]
-) {
+): Promise<Form> {
   const supabase = await createClient()
 
   const { data: form, error } = await supabase
     .from('forms')
-    .insert(data)
+    .insert(formData as never)
     .select()
     .single()
 
   if (error) throw error
 
-  if (questions.length > 0 && form) {
+  const createdForm = form as { id: number }
+
+  if (questions.length > 0 && createdForm) {
     const questionsWithFormId = questions.map((q, index) => ({
       ...q,
-      form_id: form.id,
+      form_id: createdForm.id,
       sort_order: index,
     }))
 
     const { error: questionsError } = await supabase
       .from('form_questions')
-      .insert(questionsWithFormId)
+      .insert(questionsWithFormId as never[])
 
     if (questionsError) throw questionsError
   }
 
   revalidatePath('/updates')
   revalidatePath('/admin/forms')
-  return form
+  return createdForm as Form
 }
 
 export async function submitFormResponse(
   formId: number,
   playerId: number,
   responses: Record<string, string | string[] | boolean>
-) {
+): Promise<FormResponse> {
   const supabase = await createClient()
+
+  const responseData = {
+    form_id: formId,
+    player_id: playerId,
+    responses,
+  }
 
   const { data, error } = await supabase
     .from('form_responses')
-    .upsert({
-      form_id: formId,
-      player_id: playerId,
-      responses,
-    })
+    .upsert(responseData as never)
     .select()
     .single()
 
@@ -96,10 +102,10 @@ export async function submitFormResponse(
 
   revalidatePath('/updates')
   revalidatePath(`/updates/forms/${formId}`)
-  return data
+  return data as FormResponse
 }
 
-export async function getFormResponse(formId: number, playerId: number) {
+export async function getFormResponse(formId: number, playerId: number): Promise<FormResponse | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -110,10 +116,10 @@ export async function getFormResponse(formId: number, playerId: number) {
     .single()
 
   if (error && error.code !== 'PGRST116') throw error
-  return data
+  return (data ?? null) as FormResponse | null
 }
 
-export async function getFormResponses(formId: number) {
+export async function getFormResponses(formId: number): Promise<(FormResponse & { players: { id: number; first_name: string; last_name: string; email: string } | null })[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -126,7 +132,7 @@ export async function getFormResponses(formId: number) {
     .order('submitted_at', { ascending: false })
 
   if (error) throw error
-  return data
+  return (data ?? []) as (FormResponse & { players: { id: number; first_name: string; last_name: string; email: string } | null })[]
 }
 
 export async function deleteForm(id: number) {

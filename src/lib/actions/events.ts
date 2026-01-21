@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Event, MatchDetails } from '@/types/database'
+import type { Event, MatchDetails, HomeAway, MatchResult } from '@/types/database'
 
 export async function getEvents(filters?: {
   startDate?: string
@@ -32,14 +32,16 @@ export async function getEvents(filters?: {
 
   if (error) throw error
 
+  const events = (data ?? []) as Event[]
+
   // Filter by gender if specified
-  if (filters?.gender && data) {
-    return data.filter(event =>
+  if (filters?.gender) {
+    return events.filter(event =>
       filters.gender === 'male' ? event.for_mens : event.for_womens
-    ) as Event[]
+    )
   }
 
-  return (data ?? []) as Event[]
+  return events
 }
 
 export async function getUpcomingEvents(limit: number = 5): Promise<Event[]> {
@@ -78,23 +80,33 @@ export async function getEvent(id: number): Promise<Event> {
 }
 
 export async function createEvent(
-  data: Omit<Event, 'id' | 'created_at' | 'match_details'>,
+  eventData: Omit<Event, 'id' | 'created_at' | 'match_details'>,
   matchDetails?: Omit<MatchDetails, 'event_id'>
 ) {
   const supabase = await createClient()
 
   const { data: event, error } = await supabase
     .from('events')
-    .insert(data)
+    .insert(eventData as never)
     .select()
     .single()
 
   if (error) throw error
 
-  if (matchDetails && event) {
+  const createdEvent = event as { id: number }
+
+  if (matchDetails && createdEvent) {
+    const matchData: MatchDetails = {
+      event_id: createdEvent.id,
+      opponent: matchDetails.opponent,
+      home_away: matchDetails.home_away,
+      mens_score: matchDetails.mens_score,
+      womens_score: matchDetails.womens_score,
+      result: matchDetails.result,
+    }
     const { error: matchError } = await supabase
       .from('match_details')
-      .insert({ ...matchDetails, event_id: event.id })
+      .insert(matchData as never)
 
     if (matchError) throw matchError
   }
@@ -102,27 +114,28 @@ export async function createEvent(
   revalidatePath('/schedule')
   revalidatePath('/')
   revalidatePath('/admin/events')
-  return event
+  return createdEvent
 }
 
 export async function updateEvent(
   id: number,
-  data: Partial<Event>,
+  eventData: Partial<Event>,
   matchDetails?: Partial<MatchDetails>
 ) {
   const supabase = await createClient()
 
   const { error } = await supabase
     .from('events')
-    .update(data)
+    .update(eventData as never)
     .eq('id', id)
 
   if (error) throw error
 
   if (matchDetails) {
+    const matchData = { ...matchDetails, event_id: id }
     const { error: matchError } = await supabase
       .from('match_details')
-      .upsert({ ...matchDetails, event_id: id })
+      .upsert(matchData as never)
 
     if (matchError) throw matchError
   }
