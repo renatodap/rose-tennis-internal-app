@@ -5,7 +5,7 @@ import { EventCard } from '@/components/event-card'
 import { AnnouncementCard } from '@/components/announcement-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, Calendar, Bell, Plane } from 'lucide-react'
+import { ChevronRight, Calendar, Bell, Plane, User } from 'lucide-react'
 
 export default async function DashboardPage() {
   const [events, announcements] = await Promise.all([
@@ -16,14 +16,21 @@ export default async function DashboardPage() {
   return (
     <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-md bg-rose-red">
-          <span className="text-xl font-bold text-white">R</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-rose-red">
+            <span className="text-xl font-bold text-white">R</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold">Rose-Hulman Tennis</h1>
+            <p className="text-sm text-muted-foreground">Welcome back</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-semibold">Rose-Hulman Tennis</h1>
-          <p className="text-sm text-muted-foreground">Welcome back</p>
-        </div>
+        <Link href="/profile">
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <User className="h-5 w-5" />
+          </Button>
+        </Link>
       </div>
 
       {/* Quick Actions */}
