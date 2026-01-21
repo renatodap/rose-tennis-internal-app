@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Form, FormQuestion, FormResponse } from '@/types/database'
+import type { Form, FormQuestion } from '@/types/database'
 
 export async function getForms() {
   const supabase = await createClient()

@@ -3,7 +3,7 @@ import { getUpcomingEvents } from '@/lib/actions/events'
 import { getRecentAnnouncements } from '@/lib/actions/announcements'
 import { EventCard } from '@/components/event-card'
 import { AnnouncementCard } from '@/components/announcement-card'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronRight, Calendar, Bell, Plane } from 'lucide-react'
 

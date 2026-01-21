@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Trip, TripRoster, TripStatus } from '@/types/database'
+import type { Trip, TripStatus } from '@/types/database'
 
 export async function getTrips() {
   const supabase = await createClient()

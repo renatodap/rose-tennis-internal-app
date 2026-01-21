@@ -8,7 +8,7 @@ export async function getAnnouncements(filters?: { gender?: 'male' | 'female' })
   const supabase = await createClient()
   const now = new Date().toISOString()
 
-  let query = supabase
+  const query = supabase
     .from('announcements')
     .select('*')
     .lte('publish_at', now)

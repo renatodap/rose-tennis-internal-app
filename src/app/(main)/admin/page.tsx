@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Calendar, Users, FileText, Bell, Plane, Settings } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Calendar, Users, FileText, Bell, Settings } from 'lucide-react'
 
 const adminLinks = [
   {

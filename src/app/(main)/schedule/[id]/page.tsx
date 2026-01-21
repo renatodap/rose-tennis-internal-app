@@ -4,7 +4,6 @@ import { getEvent } from '@/lib/actions/events'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Calendar, Clock, MapPin, Users, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { submitFormResponse } from '@/lib/actions/forms'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,7 +18,6 @@ interface FormRendererProps {
 }
 
 export function FormRenderer({ form, playerId, existingResponse }: FormRendererProps) {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(!!existingResponse)
   const [responses, setResponses] = useState<Record<string, string | string[] | boolean>>(
