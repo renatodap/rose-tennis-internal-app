@@ -12,6 +12,10 @@ export async function getPlayers(filters?: { gender?: Gender; tagId?: number }):
   try {
     const supabase = await createClient()
 
+    // Debug: Check if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log('getPlayers - authenticated user:', user?.email || 'NOT AUTHENTICATED')
+
     let query = supabase
       .from('players')
       .select(`
@@ -28,6 +32,8 @@ export async function getPlayers(filters?: { gender?: Gender; tagId?: number }):
     }
 
     const { data, error } = await query
+
+    console.log('getPlayers - result count:', data?.length || 0, 'error:', error?.message || 'none')
 
     if (error) {
       console.error('Error fetching players:', error)
