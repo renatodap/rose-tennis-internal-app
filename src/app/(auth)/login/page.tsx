@@ -34,25 +34,21 @@ export default function LoginPage() {
 
   // Check if email is whitelisted (exists in players or staff)
   const checkEmailWhitelist = async (checkEmail: string): Promise<boolean> => {
-    const { data, error } = await supabase.rpc('is_email_whitelisted', {
-      check_email: checkEmail
-    })
-    if (error) {
-      console.error('Whitelist check error:', error)
-      // If function doesn't exist yet, fall back to direct check
-      const { data: players } = await supabase
-        .from('players')
-        .select('id')
-        .eq('email', checkEmail)
-        .single()
-      const { data: staff } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('email', checkEmail)
-        .single()
-      return !!(players || staff)
-    }
-    return !!data
+    const { data: player } = await supabase
+      .from('players')
+      .select('id')
+      .eq('email', checkEmail)
+      .single()
+
+    if (player) return true
+
+    const { data: staffMember } = await supabase
+      .from('staff')
+      .select('id')
+      .eq('email', checkEmail)
+      .single()
+
+    return !!staffMember
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
