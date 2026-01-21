@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent } from '@/components/ui/card'
 import { Calendar, Users, FileText, Bell, Settings } from 'lucide-react'
+import type { Profile } from '@/types/database'
 
 const adminLinks = [
   {
@@ -43,7 +44,7 @@ export default async function AdminPage() {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .single() as { data: Profile | null }
 
   if (!profile || (profile.role !== 'coach' && profile.role !== 'admin' && profile.role !== 'captain')) {
     redirect('/')

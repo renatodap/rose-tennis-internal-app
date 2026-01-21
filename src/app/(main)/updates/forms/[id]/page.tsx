@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Clock, Users } from 'lucide-react'
 import { format, formatDistanceToNow, isPast } from 'date-fns'
+import type { Profile } from '@/types/database'
 
 interface FormPageProps {
   params: Promise<{ id: string }>
@@ -33,7 +34,7 @@ export default async function FormPage({ params }: FormPageProps) {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .single() as { data: Profile | null }
 
   const isPlayer = !!profile?.player_id
   let existingResponse = null
