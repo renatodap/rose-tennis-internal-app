@@ -98,7 +98,8 @@ export function useUser(): UseUserReturn {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const isAdmin = profile?.role === 'admin'
   const isCaptain = player?.is_captain === true
