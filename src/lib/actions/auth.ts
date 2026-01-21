@@ -106,9 +106,10 @@ export async function createUserManually(email: string, password: string): Promi
       role = player.is_captain ? 'captain' : 'player'
     }
 
-    // Create user with Admin API (this bypasses the trigger)
+    // Create user with Admin API
+    // Note: The database trigger will automatically create the profile
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: email.toLowerCase(), // Ensure lowercase for consistency
       password,
       email_confirm: true, // Auto-confirm email
     })
@@ -118,22 +119,31 @@ export async function createUserManually(email: string, password: string): Promi
       return { success: false, message: createError?.message || 'Failed to create user' }
     }
 
-    // Manually create the profile (since trigger might be failing)
-    const { error: profileError } = await supabaseAdmin
+    // Check if trigger created the profile, if not create it manually
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: newUser.user.id,
-        email: email.toLowerCase(),
-        role,
-        player_id: player?.id || null,
-        staff_id: staff?.id || null,
-      })
+      .select('id')
+      .eq('id', newUser.user.id)
+      .single()
 
-    if (profileError) {
-      console.error('Error creating profile:', profileError)
-      // Try to cleanup the user we just created
-      await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
-      return { success: false, message: `Profile creation failed: ${profileError.message}` }
+    if (!existingProfile) {
+      // Trigger didn't create profile, create manually
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .upsert({
+          id: newUser.user.id,
+          email: email.toLowerCase(),
+          role,
+          player_id: player?.id || null,
+          staff_id: staff?.id || null,
+        }, { onConflict: 'id' })
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        // Try to cleanup the user we just created
+        await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
+        return { success: false, message: `Profile creation failed: ${profileError.message}` }
+      }
     }
 
     return { success: true, message: 'Account created successfully!', userId: newUser.user.id }
