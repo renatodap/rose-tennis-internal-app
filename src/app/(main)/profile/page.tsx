@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 
 export default function ProfilePage() {
-  const { user, profile, loading, isCoach, isAdmin, isPlayer } = useUser()
+  const { user, profile, loading, isCoach, isAdmin, isPlayer, isCaptain } = useUser()
   const [signingOut, setSigningOut] = useState(false)
   const supabase = createClient()
   const router = useRouter()
@@ -47,8 +47,8 @@ export default function ProfilePage() {
 
   const getRoleBadge = () => {
     if (isAdmin) return <Badge className="bg-rose-red">Admin</Badge>
-    if (profile?.role === 'captain') return <Badge className="bg-rose-orange text-white">Captain</Badge>
     if (profile?.role === 'coach') return <Badge className="bg-blue-600">Coach</Badge>
+    if (isCaptain) return <Badge className="bg-rose-orange text-white">Captain</Badge>
     if (isPlayer) return <Badge variant="secondary">Player</Badge>
     return <Badge variant="outline">Pending</Badge>
   }

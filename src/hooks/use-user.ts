@@ -3,38 +3,57 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
-import type { Profile } from '@/types/database'
+import type { Profile, Player } from '@/types/database'
 
 interface UseUserReturn {
   user: User | null
   profile: Profile | null
+  player: Player | null
   loading: boolean
   isAuthenticated: boolean
   isCoach: boolean
   isAdmin: boolean
   isPlayer: boolean
+  isCaptain: boolean
 }
 
 export function useUser(): UseUserReturn {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [player, setPlayer] = useState<Player | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        setProfile(profile)
+        if (user) {
+          // Get profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          setProfile(profileData as Profile | null)
+
+          // If profile has player_id, get player data to check is_captain
+          if (profileData?.player_id) {
+            const { data: playerData } = await supabase
+              .from('players')
+              .select('*')
+              .eq('id', profileData.player_id)
+              .single()
+            setPlayer(playerData as Player | null)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     getUser()
@@ -43,14 +62,30 @@ export function useUser(): UseUserReturn {
       async (event, session) => {
         setUser(session?.user ?? null)
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-          setProfile(profile)
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+            setProfile(profileData as Profile | null)
+
+            if (profileData?.player_id) {
+              const { data: playerData } = await supabase
+                .from('players')
+                .select('*')
+                .eq('id', profileData.player_id)
+                .single()
+              setPlayer(playerData as Player | null)
+            } else {
+              setPlayer(null)
+            }
+          } catch (error) {
+            console.error('Error fetching profile:', error)
+          }
         } else {
           setProfile(null)
+          setPlayer(null)
         }
         setLoading(false)
       }
@@ -61,13 +96,19 @@ export function useUser(): UseUserReturn {
     }
   }, [supabase])
 
+  const isAdmin = profile?.role === 'admin'
+  const isCaptain = player?.is_captain === true
+  const isCoach = profile?.role === 'coach' || profile?.role === 'admin' || isCaptain
+
   return {
     user,
     profile,
+    player,
     loading,
     isAuthenticated: !!user,
-    isCoach: profile?.role === 'coach' || profile?.role === 'admin' || profile?.role === 'captain',
-    isAdmin: profile?.role === 'admin',
+    isCoach,
+    isAdmin,
     isPlayer: profile?.role === 'player',
+    isCaptain,
   }
 }
