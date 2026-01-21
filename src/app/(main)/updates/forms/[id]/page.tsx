@@ -36,7 +36,7 @@ export default async function FormPage({ params }: FormPageProps) {
       .select('*')
       .eq('id', user.id)
       .single()
-    profile = data
+    profile = data as Profile | null
 
     if (profile?.player_id) {
       existingResponse = await getFormResponse(form.id, profile.player_id)
