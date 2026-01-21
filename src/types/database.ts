@@ -1,4 +1,4 @@
-export type UserRole = 'player' | 'coach' | 'admin' | 'pending'
+export type UserRole = 'player' | 'coach' | 'admin' | 'captain' | 'pending'
 export type Gender = 'male' | 'female'
 export type ClassYear = 'Fr' | 'So' | 'Jr' | 'Sr'
 export type EventType = 'practice' | 'match' | 'fitness' | 'meeting' | 'scrimmage' | 'trip' | 'other'
@@ -151,67 +151,92 @@ export interface Database {
         Row: Profile
         Insert: Omit<Profile, 'created_at'>
         Update: Partial<Omit<Profile, 'id' | 'created_at'>>
+        Relationships: []
       }
       players: {
-        Row: Player
-        Insert: Omit<Player, 'id' | 'created_at'>
-        Update: Partial<Omit<Player, 'id' | 'created_at'>>
+        Row: Omit<Player, 'player_tags'>
+        Insert: Omit<Player, 'id' | 'created_at' | 'player_tags'>
+        Update: Partial<Omit<Player, 'id' | 'created_at' | 'player_tags'>>
+        Relationships: []
       }
       staff: {
         Row: Staff
         Insert: Omit<Staff, 'id' | 'created_at'>
         Update: Partial<Omit<Staff, 'id' | 'created_at'>>
+        Relationships: []
       }
       tags: {
         Row: Tag
         Insert: Omit<Tag, 'id'>
         Update: Partial<Omit<Tag, 'id'>>
+        Relationships: []
       }
       player_tags: {
-        Row: PlayerTag
-        Insert: PlayerTag
-        Update: Partial<PlayerTag>
+        Row: Omit<PlayerTag, 'player' | 'tags'>
+        Insert: Omit<PlayerTag, 'player' | 'tags'>
+        Update: Partial<Omit<PlayerTag, 'player' | 'tags'>>
+        Relationships: []
       }
       events: {
-        Row: Event
-        Insert: Omit<Event, 'id' | 'created_at'>
-        Update: Partial<Omit<Event, 'id' | 'created_at'>>
+        Row: Omit<Event, 'match_details'>
+        Insert: Omit<Event, 'id' | 'created_at' | 'match_details'>
+        Update: Partial<Omit<Event, 'id' | 'created_at' | 'match_details'>>
+        Relationships: []
       }
       match_details: {
         Row: MatchDetails
         Insert: MatchDetails
         Update: Partial<MatchDetails>
+        Relationships: []
       }
       trips: {
-        Row: Trip
-        Insert: Omit<Trip, 'id' | 'created_at'>
-        Update: Partial<Omit<Trip, 'id' | 'created_at'>>
+        Row: Omit<Trip, 'trip_roster'>
+        Insert: Omit<Trip, 'id' | 'created_at' | 'trip_roster'>
+        Update: Partial<Omit<Trip, 'id' | 'created_at' | 'trip_roster'>>
+        Relationships: []
       }
       trip_roster: {
-        Row: TripRoster
-        Insert: TripRoster
-        Update: Partial<TripRoster>
+        Row: Omit<TripRoster, 'player'>
+        Insert: Omit<TripRoster, 'player'>
+        Update: Partial<Omit<TripRoster, 'player'>>
+        Relationships: []
       }
       announcements: {
         Row: Announcement
         Insert: Omit<Announcement, 'id' | 'created_at'>
         Update: Partial<Omit<Announcement, 'id' | 'created_at'>>
+        Relationships: []
       }
       forms: {
-        Row: Form
-        Insert: Omit<Form, 'id' | 'created_at'>
-        Update: Partial<Omit<Form, 'id' | 'created_at'>>
+        Row: Omit<Form, 'form_questions'>
+        Insert: Omit<Form, 'id' | 'created_at' | 'form_questions'>
+        Update: Partial<Omit<Form, 'id' | 'created_at' | 'form_questions'>>
+        Relationships: []
       }
       form_questions: {
         Row: FormQuestion
         Insert: Omit<FormQuestion, 'id'>
         Update: Partial<Omit<FormQuestion, 'id'>>
+        Relationships: []
       }
       form_responses: {
         Row: FormResponse
         Insert: Omit<FormResponse, 'id' | 'submitted_at'>
         Update: Partial<Omit<FormResponse, 'id' | 'submitted_at'>>
+        Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
