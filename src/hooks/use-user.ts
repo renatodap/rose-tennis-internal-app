@@ -37,14 +37,15 @@ export function useUser(): UseUserReturn {
             .select('*')
             .eq('id', user.id)
             .single()
-          setProfile(profileData as Profile | null)
+          const typedProfile = profileData as Profile | null
+          setProfile(typedProfile)
 
           // If profile has player_id, get player data to check is_captain
-          if (profileData?.player_id) {
+          if (typedProfile?.player_id) {
             const { data: playerData } = await supabase
               .from('players')
               .select('*')
-              .eq('id', profileData.player_id)
+              .eq('id', typedProfile.player_id)
               .single()
             setPlayer(playerData as Player | null)
           }
@@ -68,13 +69,14 @@ export function useUser(): UseUserReturn {
               .select('*')
               .eq('id', session.user.id)
               .single()
-            setProfile(profileData as Profile | null)
+            const typedProfile = profileData as Profile | null
+            setProfile(typedProfile)
 
-            if (profileData?.player_id) {
+            if (typedProfile?.player_id) {
               const { data: playerData } = await supabase
                 .from('players')
                 .select('*')
-                .eq('id', profileData.player_id)
+                .eq('id', typedProfile.player_id)
                 .single()
               setPlayer(playerData as Player | null)
             } else {
