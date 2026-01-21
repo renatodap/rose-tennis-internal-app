@@ -1,11 +1,31 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Routes that don't require authentication
-const publicRoutes = ['/login', '/auth/callback', '/reset-password', '/update-password']
+// Routes that don't require authentication (browse-first pattern)
+const publicRoutes = [
+  '/',
+  '/schedule',
+  '/updates',
+  '/login',
+  '/auth/callback',
+  '/reset-password',
+  '/update-password',
+]
 
 // Routes that authenticated users should be redirected away from
 const authRoutes = ['/login']
+
+// Check if path matches a public route (including dynamic segments)
+function isPublicPath(pathname: string): boolean {
+  // Exact matches
+  if (publicRoutes.includes(pathname)) return true
+
+  // Dynamic matches for schedule and updates (including form pages for viewing)
+  if (pathname.startsWith('/schedule/')) return true
+  if (pathname.startsWith('/updates/')) return true
+
+  return false
+}
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -55,7 +75,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Check if the current route is public
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+  const isPublicRoute = isPublicPath(pathname)
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
 
   // If user is not authenticated and trying to access a protected route

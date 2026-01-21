@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getForm, getFormResponse } from '@/lib/actions/forms'
 import { createClient } from '@/lib/supabase/server'
@@ -6,7 +6,7 @@ import { FormRenderer } from '@/components/form-renderer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Clock, Users } from 'lucide-react'
+import { ArrowLeft, Clock, Users, LogIn } from 'lucide-react'
 import { format, formatDistanceToNow, isPast } from 'date-fns'
 import type { Profile } from '@/types/database'
 
@@ -26,26 +26,26 @@ export default async function FormPage({ params }: FormPageProps) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
+  let profile: Profile | null = null
+  let existingResponse = null
+  const isAuthenticated = !!user
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single() as { data: Profile | null }
+  if (user) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    profile = data
+
+    if (profile?.player_id) {
+      existingResponse = await getFormResponse(form.id, profile.player_id)
+    }
+  }
 
   const isPlayer = !!profile?.player_id
-  let existingResponse = null
-
-  if (isPlayer && profile.player_id) {
-    existingResponse = await getFormResponse(form.id, profile.player_id)
-  }
-
   const isDueSoon = form.due_date && !isPast(new Date(form.due_date)) &&
     new Date(form.due_date).getTime() - Date.now() < 48 * 60 * 60 * 1000
-
   const isOverdue = form.due_date && isPast(new Date(form.due_date))
 
   return (
@@ -100,8 +100,25 @@ export default async function FormPage({ params }: FormPageProps) {
         </CardContent>
       </Card>
 
-      {/* Form Content */}
-      {isPlayer && profile?.player_id ? (
+      {/* Form Content - conditional based on auth state */}
+      {!isAuthenticated ? (
+        // Not logged in - show login prompt
+        <Card className="border-rose-silver/30">
+          <CardContent className="p-6 text-center">
+            <LogIn className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-medium text-lg mb-2">Sign in to fill this form</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              You need to be logged in with your Rose-Hulman account to submit a response.
+            </p>
+            <Button asChild className="bg-rose-red hover:bg-rose-red/90">
+              <Link href={`/login?next=/updates/forms/${id}`}>
+                Sign in to continue
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : isPlayer && profile?.player_id ? (
+        // Logged in as player - show form
         <Card className="border-rose-silver/30">
           <CardHeader>
             <CardTitle className="text-base">Your Response</CardTitle>
@@ -118,6 +135,7 @@ export default async function FormPage({ params }: FormPageProps) {
           </CardContent>
         </Card>
       ) : (
+        // Logged in but not a player
         <Card className="border-rose-silver/30">
           <CardContent className="p-6 text-center text-muted-foreground">
             You need a player profile to submit this form.

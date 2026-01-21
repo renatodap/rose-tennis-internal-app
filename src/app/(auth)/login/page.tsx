@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
 import { checkEmailWhitelist, createUserManually } from '@/lib/actions/auth'
+import { cn } from '@/lib/utils'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -20,8 +21,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<AuthMode>('signin')
+  const emailRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Auto-focus email field on mount and mode change
+  useEffect(() => {
+    emailRef.current?.focus()
+  }, [mode])
 
   // Password validation: 8+ chars, at least 1 special character
   const validatePassword = (pwd: string): string | null => {
@@ -45,6 +53,8 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
+
+    const nextUrl = searchParams.get('next') || '/'
 
     if (mode === 'signup') {
       // Validate password
@@ -82,7 +92,7 @@ export default function LoginPage() {
         setError('Account created! Please sign in.')
         setMode('signin')
       } else {
-        router.push('/')
+        router.push(nextUrl)
         router.refresh()
       }
     } else {
@@ -99,7 +109,7 @@ export default function LoginPage() {
           setError(signInError.message)
         }
       } else {
-        router.push('/')
+        router.push(nextUrl)
         router.refresh()
       }
     }
@@ -107,24 +117,63 @@ export default function LoginPage() {
     setLoading(false)
   }
 
+  const switchMode = (newMode: AuthMode) => {
+    setMode(newMode)
+    setError(null)
+    setPassword('')
+  }
+
   return (
     <Card className="w-full max-w-sm border-rose-silver/30">
-      <CardHeader className="text-center">
+      <CardHeader className="text-center pb-2">
         <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-md bg-rose-red">
           <span className="text-2xl font-bold text-white">R</span>
         </div>
         <CardTitle className="text-xl">Rose-Hulman Tennis</CardTitle>
-        <CardDescription>
-          {mode === 'signin' ? 'Sign in to your account' : 'Create your account'}
-        </CardDescription>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="pt-2">
+        {/* Tab Navigation */}
+        <div className="flex border-b border-rose-silver/30 mb-6">
+          <button
+            type="button"
+            onClick={() => switchMode('signin')}
+            className={cn(
+              'flex-1 py-3 text-sm font-medium text-center transition-colors relative',
+              mode === 'signin'
+                ? 'text-rose-red'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Sign in
+            {mode === 'signin' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-red" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode('signup')}
+            className={cn(
+              'flex-1 py-3 text-sm font-medium text-center transition-colors relative',
+              mode === 'signup'
+                ? 'text-rose-red'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Create account
+            {mode === 'signup' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-red" />
+            )}
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                ref={emailRef}
                 id="email"
                 type="email"
                 inputMode="email"
@@ -151,14 +200,15 @@ export default function LoginPage() {
                 placeholder={mode === 'signup' ? '8+ chars, 1 special char' : 'Enter your password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 pr-9"
+                className="pl-9 pr-10"
                 required
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-2 -m-0"
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-2"
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -197,31 +247,11 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="mt-4 text-center text-sm">
-          {mode === 'signin' ? (
-            <p className="text-muted-foreground">
-              Don&apos;t have an account?{' '}
-              <button
-                type="button"
-                onClick={() => { setMode('signup'); setError(null); }}
-                className="text-rose-red hover:underline font-medium"
-              >
-                Sign up
-              </button>
-            </p>
-          ) : (
-            <p className="text-muted-foreground">
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => { setMode('signin'); setError(null); }}
-                className="text-rose-red hover:underline font-medium"
-              >
-                Sign in
-              </button>
-            </p>
-          )}
-        </div>
+        {mode === 'signup' && (
+          <p className="mt-4 text-xs text-center text-muted-foreground">
+            Only players and staff on the team roster can create accounts.
+          </p>
+        )}
       </CardContent>
     </Card>
   )

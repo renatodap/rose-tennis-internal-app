@@ -9,6 +9,7 @@ interface UseUserReturn {
   user: User | null
   profile: Profile | null
   loading: boolean
+  isAuthenticated: boolean
   isCoach: boolean
   isAdmin: boolean
   isPlayer: boolean
@@ -64,6 +65,7 @@ export function useUser(): UseUserReturn {
     user,
     profile,
     loading,
+    isAuthenticated: !!user,
     isCoach: profile?.role === 'coach' || profile?.role === 'admin' || profile?.role === 'captain',
     isAdmin: profile?.role === 'admin',
     isPlayer: profile?.role === 'player',
