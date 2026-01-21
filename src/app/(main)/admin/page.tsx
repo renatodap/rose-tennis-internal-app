@@ -41,11 +41,11 @@ export default async function AdminPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('*')
     .eq('id', user.id)
     .single()
 
-  if (!profile || (profile.role !== 'coach' && profile.role !== 'admin')) {
+  if (!profile || (profile.role !== 'coach' && profile.role !== 'admin' && profile.role !== 'captain')) {
     redirect('/')
   }
 

@@ -25,8 +25,14 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-rose-silver/30 safe-area-bottom">
-      <div className="flex items-center justify-around h-16">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-rose-silver/30">
+      <div
+        className="flex items-center justify-around"
+        style={{
+          height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
+      >
         {items.map((item) => {
           const isActive = pathname === item.href ||
             (item.href !== '/' && pathname.startsWith(item.href))
@@ -36,14 +42,16 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center w-full h-full text-xs gap-1 transition-colors',
+                'flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-xs gap-1 transition-colors active:opacity-70',
                 isActive
                   ? 'text-rose-red'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <item.icon className={cn('h-5 w-5', isActive && 'stroke-[2.5]')} />
-              <span className={cn(isActive && 'font-medium')}>{item.label}</span>
+              <item.icon className={cn('h-6 w-6', isActive && 'stroke-[2.5]')} />
+              <span className={cn('text-[11px]', isActive && 'font-medium')}>
+                {item.label}
+              </span>
             </Link>
           )
         })}

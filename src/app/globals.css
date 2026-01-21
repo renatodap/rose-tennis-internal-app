@@ -58,16 +58,34 @@
   }
 }
 
+/* Prevent iOS overscroll bounce */
+html, body {
+  overscroll-behavior-y: none;
+}
+
+/* Top safe area for notch devices */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* Safe area for mobile bottom nav */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Full safe area padding */
+.safe-area-all {
+  padding: env(safe-area-inset-top, 0px)
+           env(safe-area-inset-right, 0px)
+           env(safe-area-inset-bottom, 0px)
+           env(safe-area-inset-left, 0px);
+}
+
 /* Bottom nav height */
 .bottom-nav-height {
-  height: 64px;
+  height: 60px;
 }
 
 .pb-bottom-nav {
-  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 }

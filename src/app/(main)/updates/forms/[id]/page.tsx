@@ -31,7 +31,7 @@ export default async function FormPage({ params }: FormPageProps) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('player_id')
+    .select('*')
     .eq('id', user.id)
     .single()
 
