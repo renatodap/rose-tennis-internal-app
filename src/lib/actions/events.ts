@@ -8,7 +8,7 @@ export async function getEvents(filters?: {
   startDate?: string
   endDate?: string
   gender?: 'male' | 'female'
-}) {
+}): Promise<Event[]> {
   const supabase = await createClient()
 
   let query = supabase
@@ -36,13 +36,13 @@ export async function getEvents(filters?: {
   if (filters?.gender && data) {
     return data.filter(event =>
       filters.gender === 'male' ? event.for_mens : event.for_womens
-    )
+    ) as Event[]
   }
 
-  return data
+  return (data ?? []) as Event[]
 }
 
-export async function getUpcomingEvents(limit: number = 5) {
+export async function getUpcomingEvents(limit: number = 5): Promise<Event[]> {
   const supabase = await createClient()
   const today = new Date().toISOString().split('T')[0]
 
@@ -58,10 +58,10 @@ export async function getUpcomingEvents(limit: number = 5) {
     .limit(limit)
 
   if (error) throw error
-  return data
+  return (data ?? []) as Event[]
 }
 
-export async function getEvent(id: number) {
+export async function getEvent(id: number): Promise<Event> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -74,7 +74,7 @@ export async function getEvent(id: number) {
     .single()
 
   if (error) throw error
-  return data
+  return data as Event
 }
 
 export async function createEvent(
