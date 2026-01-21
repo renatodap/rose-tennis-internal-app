@@ -23,9 +23,14 @@ export function useUser(): UseUserReturn {
   const [player, setPlayer] = useState<Player | null>(null)
   const [loading, setLoading] = useState(true)
   const mountedRef = useRef(true)
+  const initializedRef = useRef(false)
 
   useEffect(() => {
+    // Prevent double-initialization in React Strict Mode
+    if (initializedRef.current) return
+    initializedRef.current = true
     mountedRef.current = true
+
     const supabase = createClient()
 
     const fetchUserData = async (authUser: User | null) => {
@@ -84,30 +89,15 @@ export function useUser(): UseUserReturn {
       }
     }
 
-    // Timeout wrapper to prevent getUser() from hanging indefinitely
-    // Known Supabase bug: https://github.com/supabase/supabase/issues/35754
-    const getAuthWithTimeout = async (timeoutMs: number = 5000) => {
-      const timeoutPromise = new Promise<{ data: { user: null }, error: Error }>((resolve) => {
-        setTimeout(() => {
-          console.warn('Auth getUser() timed out after', timeoutMs, 'ms')
-          resolve({ data: { user: null }, error: new Error('Auth timeout') })
-        }, timeoutMs)
-      })
-
-      return Promise.race([
-        supabase.auth.getUser(),
-        timeoutPromise
-      ])
-    }
-
-    // Initial fetch
+    // Initial fetch using getSession() - reads from storage, doesn't hang
+    // getUser() can hang indefinitely: https://github.com/supabase/supabase/issues/35754
     const initAuth = async () => {
       try {
-        const { data: { user: authUser }, error } = await getAuthWithTimeout(5000)
+        const { data: { session }, error } = await supabase.auth.getSession()
         if (error) {
-          console.error('Auth error:', error)
+          console.error('Session error:', error)
         }
-        await fetchUserData(authUser)
+        await fetchUserData(session?.user ?? null)
       } catch (error) {
         console.error('Init auth error:', error)
         if (mountedRef.current) {
@@ -118,7 +108,7 @@ export function useUser(): UseUserReturn {
 
     initAuth()
 
-    // Listen for auth changes
+    // Listen for auth changes - this handles login/logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (!mountedRef.current) return
