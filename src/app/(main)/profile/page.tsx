@@ -14,6 +14,7 @@ import {
   Mail,
   Shield,
   LogOut,
+  LogIn,
   Loader2,
   ChevronRight,
   Key,
