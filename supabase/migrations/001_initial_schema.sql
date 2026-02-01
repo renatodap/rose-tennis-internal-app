@@ -359,7 +359,7 @@ INSERT INTO tags (name, color) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO staff (first_name, last_name, email, title, role) VALUES
-  ('Matt', 'Wilson', 'wilson@rose-hulman.edu', 'Head Coach', 'head_coach'),
+  ('Matt', 'Wilson', 'wilson9@rose-hulman.edu', 'Head Coach', 'head_coach'),
   ('Amanda', 'Lubold', 'lubold@rose-hulman.edu', 'Assistant Coach', 'assistant_coach')
 ON CONFLICT (email) DO NOTHING;
 

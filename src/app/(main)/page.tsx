@@ -5,7 +5,7 @@ import { EventCard } from '@/components/event-card'
 import { AnnouncementCard } from '@/components/announcement-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ChevronRight, Calendar, Bell, Plane, User } from 'lucide-react'
+import { ChevronRight, Calendar, Bell, FileText, Plane, User } from 'lucide-react'
 
 export default async function DashboardPage() {
   const [events, announcements] = await Promise.all([
@@ -34,7 +34,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <Link href="/schedule">
           <Card className="border-rose-silver/30 hover:border-rose-red/50 transition-colors">
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
@@ -48,6 +48,14 @@ export default async function DashboardPage() {
             <CardContent className="p-3 flex flex-col items-center justify-center text-center">
               <Bell className="h-6 w-6 text-rose-red mb-1" />
               <span className="text-xs font-medium">Updates</span>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/notes">
+          <Card className="border-rose-silver/30 hover:border-rose-red/50 transition-colors">
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center">
+              <FileText className="h-6 w-6 text-rose-red mb-1" />
+              <span className="text-xs font-medium">Notes</span>
             </CardContent>
           </Card>
         </Link>

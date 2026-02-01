@@ -6,6 +6,8 @@ const publicRoutes = [
   '/',
   '/schedule',
   '/updates',
+  '/notes',
+  '/roster',
   '/login',
   '/auth/callback',
   '/reset-password',
@@ -23,6 +25,8 @@ function isPublicPath(pathname: string): boolean {
   // Dynamic matches for schedule and updates (including form pages for viewing)
   if (pathname.startsWith('/schedule/')) return true
   if (pathname.startsWith('/updates/')) return true
+  if (pathname.startsWith('/notes/')) return true
+  if (pathname.startsWith('/roster/')) return true
 
   return false
 }
@@ -69,8 +73,10 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refresh session if expired - required for Server Components
-  // Use getUser() for security - it validates the token with Supabase
-  const { data: { user } } = await supabase.auth.getUser()
+  // Use getSession() to avoid hanging when token is expired
+  // See: https://github.com/supabase/supabase/issues/35754
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
   const pathname = request.nextUrl.pathname
 

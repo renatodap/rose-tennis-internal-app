@@ -1,3 +1,33 @@
+export type NoteType = 'practice' | 'match' | 'pre_match' | 'post_match' | 'practice_plan' | 'film_review' | 'general'
+
+export interface Note {
+  id: number
+  author_id: string
+  note_type: NoteType
+  title: string
+  content: string
+  event_id: number | null
+  visibility: 'private' | 'team' | 'specific'
+  player_mentions: number[]
+  key_points: string[]
+  ai_raw_output: AIParsedResult | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AIParsedResult {
+  extracted_text: string
+  players_mentioned: string[]
+  key_points: string[]
+  related_events?: { id: number; title: string }[]
+  related_notes?: { id: number; title: string }[]
+}
+
+export interface NoteShare {
+  note_id: number
+  player_id: number
+}
+
 export type UserRole = 'player' | 'coach' | 'admin' | 'captain' | 'pending'
 export type Gender = 'male' | 'female'
 export type ClassYear = 'Fr' | 'So' | 'Jr' | 'Sr'
@@ -223,6 +253,18 @@ export interface Database {
         Row: FormResponse
         Insert: Omit<FormResponse, 'id' | 'submitted_at'>
         Update: Partial<Omit<FormResponse, 'id' | 'submitted_at'>>
+        Relationships: []
+      }
+      notes: {
+        Row: Note
+        Insert: Omit<Note, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Note, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: []
+      }
+      note_shares: {
+        Row: NoteShare
+        Insert: NoteShare
+        Update: Partial<NoteShare>
         Relationships: []
       }
     }
