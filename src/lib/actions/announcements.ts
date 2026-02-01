@@ -65,6 +65,26 @@ export async function getRecentAnnouncements(limit: number = 3): Promise<Announc
   }
 }
 
+export async function getAnnouncement(id: number): Promise<Announcement | null> {
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching announcement:', error)
+      return null
+    }
+    return data as Announcement
+  } catch (err) {
+    console.error('Error in getAnnouncement:', err)
+    return null
+  }
+}
+
 export async function createAnnouncement(announcementData: Omit<Announcement, 'id' | 'created_at'>) {
   const supabase = await createClient()
 

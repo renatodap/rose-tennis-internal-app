@@ -1,6 +1,7 @@
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, Info, AlertTriangle, Bell } from 'lucide-react'
+import { AlertCircle, Info, AlertTriangle, Bell, ChevronRight } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import type { Announcement, Priority } from '@/types/database'
 
@@ -21,43 +22,46 @@ export function AnnouncementCard({ announcement }: AnnouncementCardProps) {
   const isRecent = new Date(announcement.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000
 
   return (
-    <Card className={`border ${config.color.includes('border') ? config.color.split(' ').find(c => c.startsWith('border-')) : 'border-rose-silver/30'}`}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className={`p-2 rounded-md ${config.color.split(' ').slice(0, 2).join(' ')}`}>
-            <Icon className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium truncate">{announcement.title}</h3>
-              {config.label && (
-                <Badge variant="outline" className="text-xs border-current">
-                  {config.label}
-                </Badge>
-              )}
-              {isRecent && (
-                <Badge className="bg-rose-red text-white text-xs">New</Badge>
-              )}
+    <Link href={`/updates/${announcement.id}`}>
+      <Card className={`border ${config.color.includes('border') ? config.color.split(' ').find(c => c.startsWith('border-')) : 'border-rose-silver/30'} hover:border-rose-red/50 transition-colors`}>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-md ${config.color.split(' ').slice(0, 2).join(' ')}`}>
+              <Icon className="h-4 w-4" />
             </div>
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {announcement.content}
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-              <span>
-                {formatDistanceToNow(new Date(announcement.publish_at), { addSuffix: true })}
-              </span>
-              {announcement.expires_at && (
-                <>
-                  <span className="text-rose-silver">|</span>
-                  <span>
-                    Expires {format(new Date(announcement.expires_at), 'MMM d')}
-                  </span>
-                </>
-              )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium truncate">{announcement.title}</h3>
+                {config.label && (
+                  <Badge variant="outline" className="text-xs border-current">
+                    {config.label}
+                  </Badge>
+                )}
+                {isRecent && (
+                  <Badge className="bg-rose-red text-white text-xs">New</Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {announcement.content}
+              </p>
+              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                <span>
+                  {formatDistanceToNow(new Date(announcement.publish_at), { addSuffix: true })}
+                </span>
+                {announcement.expires_at && (
+                  <>
+                    <span className="text-rose-silver">|</span>
+                    <span>
+                      Expires {format(new Date(announcement.expires_at), 'MMM d')}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   )
 }
