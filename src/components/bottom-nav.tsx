@@ -2,28 +2,35 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, FileText, Users, Settings, User, LogIn } from 'lucide-react'
+import { Home, FileText, Users, Settings, User, LogIn, Plane } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/use-user'
 
-const navItems = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/notes', label: 'Notes', icon: FileText },
-  { href: '/roster', label: 'Roster', icon: Users },
-]
+interface BottomNavProps {
+  activeTripId?: number | null
+}
 
-const adminItem = { href: '/admin', label: 'Admin', icon: Settings }
-
-export function BottomNav() {
+export function BottomNav({ activeTripId }: BottomNavProps) {
   const pathname = usePathname()
   const { isCoach, isAdmin, isAuthenticated } = useUser()
 
-  const items = [...navItems]
-  if (isCoach || isAdmin) {
-    items.push(adminItem)
+  const items: { href: string; label: string; icon: typeof Home }[] = [
+    { href: '/', label: 'Home', icon: Home },
+  ]
+
+  // During trip season, show Trip instead of Notes
+  if (activeTripId) {
+    items.push({ href: `/trips/${activeTripId}`, label: 'Trip', icon: Plane })
+  } else {
+    items.push({ href: '/notes', label: 'Notes', icon: FileText })
   }
 
-  // Add Profile/Login as last item
+  items.push({ href: '/roster', label: 'Roster', icon: Users })
+
+  if (isCoach || isAdmin) {
+    items.push({ href: '/admin', label: 'Admin', icon: Settings })
+  }
+
   items.push({
     href: isAuthenticated ? '/profile' : '/login',
     label: isAuthenticated ? 'Profile' : 'Sign In',
@@ -36,11 +43,12 @@ export function BottomNav() {
         className="flex items-center justify-around"
         style={{
           height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {items.map((item) => {
-          const isActive = pathname === item.href ||
+          const isActive =
+            pathname === item.href ||
             (item.href !== '/' && pathname.startsWith(item.href))
 
           return (

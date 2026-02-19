@@ -5,8 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import {
   CalendarClock,
   Calendar,
-  UtensilsCrossed,
-  ShoppingCart,
   ClipboardCheck,
   Info,
 } from 'lucide-react'
@@ -21,21 +19,24 @@ import type {
 } from '@/types/database'
 import { TodayView } from './today-view'
 import { ScheduleView } from './schedule-view'
-import { MealsView } from './meals-view'
-import { GroceryView } from './grocery-view'
 import { TasksView } from './tasks-view'
 import { InfoView } from './info-view'
 
 const TABS = [
-  { id: 'today', label: 'Today', icon: CalendarClock },
+  { id: 'dashboard', label: 'Dashboard', icon: CalendarClock },
   { id: 'schedule', label: 'Schedule', icon: Calendar },
-  { id: 'meals', label: 'Meals', icon: UtensilsCrossed },
-  { id: 'grocery', label: 'Grocery', icon: ShoppingCart },
-  { id: 'tasks', label: 'Tasks', icon: ClipboardCheck },
+  { id: 'tasks', label: 'Tasks & Grocery', icon: ClipboardCheck },
   { id: 'info', label: 'Info', icon: Info },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
+
+// Map old tab IDs to new ones for backwards compatibility
+const TAB_MIGRATION: Record<string, string> = {
+  today: 'dashboard',
+  meals: 'schedule',
+  grocery: 'tasks',
+}
 
 interface TripTabsProps {
   trip: Trip
@@ -64,7 +65,8 @@ export function TripTabs({
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const activeTab = (searchParams.get('tab') as TabId) || 'today'
+  const rawTab = searchParams.get('tab') || 'dashboard'
+  const activeTab = (TAB_MIGRATION[rawTab] ?? rawTab) as TabId
 
   const tripDates = useMemo(() => {
     const start = parseISO(trip.departure_date)
@@ -133,7 +135,7 @@ export function TripTabs({
       </div>
 
       <div className="mt-4">
-        {activeTab === 'today' && (
+        {activeTab === 'dashboard' && (
           <TodayView
             schedule={schedule}
             meals={meals}
@@ -141,28 +143,19 @@ export function TripTabs({
             tripDates={tripDates}
             selectedDate={selectedDate}
             onDateChange={setDay}
+            tripDepartureDate={trip.departure_date}
+            tripReturnDate={trip.return_date}
+            groceryBudget={groceryBudget}
+            onSwitchTab={(tab) => setTab(tab as TabId)}
           />
         )}
         {activeTab === 'schedule' && (
           <ScheduleView
             schedule={schedule}
-            tripDates={tripDates}
-            selectedDate={selectedDate}
-            onDateChange={setDay}
-          />
-        )}
-        {activeTab === 'meals' && (
-          <MealsView
             meals={meals}
             tripDates={tripDates}
             selectedDate={selectedDate}
             onDateChange={setDay}
-          />
-        )}
-        {activeTab === 'grocery' && (
-          <GroceryView
-            groceryItems={groceryItems}
-            groceryBudget={groceryBudget}
           />
         )}
         {activeTab === 'tasks' && (
@@ -171,13 +164,12 @@ export function TripTabs({
             tripDates={tripDates}
             selectedDate={selectedDate}
             onDateChange={setDay}
+            groceryItems={groceryItems}
+            groceryBudget={groceryBudget}
           />
         )}
         {activeTab === 'info' && (
-          <InfoView
-            trip={trip}
-            staffRoster={staffRoster}
-          />
+          <InfoView trip={trip} staffRoster={staffRoster} />
         )}
       </div>
     </div>

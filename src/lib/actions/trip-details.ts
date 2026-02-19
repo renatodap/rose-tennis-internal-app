@@ -320,6 +320,99 @@ export async function getTaskProgress(
 }
 
 // ---------------------------------------------------------------------------
+// Active Trip Summary (for home page banner)
+// ---------------------------------------------------------------------------
+
+export async function getActiveTripSummary(): Promise<{
+  trip: { id: number; name: string; destination: string; departure_date: string; return_date: string }
+  scheduleCount: number
+  taskCount: number
+  groceryCount: number
+  todaySchedule: TripScheduleEntry[]
+} | null> {
+  try {
+    const supabase = await createClient()
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data: trips, error } = await supabase
+      .from('trips')
+      .select('id, name, destination, departure_date, return_date')
+      .gte('return_date', today)
+      .order('departure_date', { ascending: true })
+      .limit(1)
+
+    if (error || !trips || trips.length === 0) return null
+
+    const trip = trips[0] as {
+      id: number; name: string; destination: string
+      departure_date: string; return_date: string
+    }
+
+    const [scheduleRes, taskRes, groceryRes, todayScheduleRes] = await Promise.all([
+      supabase.from('trip_schedule').select('id').eq('trip_id', trip.id),
+      supabase.from('trip_tasks').select('id').eq('trip_id', trip.id),
+      supabase.from('trip_grocery_items').select('id').eq('trip_id', trip.id),
+      supabase
+        .from('trip_schedule')
+        .select('*')
+        .eq('trip_id', trip.id)
+        .eq('day_date', today)
+        .order('start_time', { ascending: true })
+        .limit(3),
+    ])
+
+    return {
+      trip,
+      scheduleCount: scheduleRes.data?.length ?? 0,
+      taskCount: taskRes.data?.length ?? 0,
+      groceryCount: groceryRes.data?.length ?? 0,
+      todaySchedule: (todayScheduleRes.data ?? []) as TripScheduleEntry[],
+    }
+  } catch (err) {
+    console.error('Error in getActiveTripSummary:', err)
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Active Trip ID (for bottom nav)
+// ---------------------------------------------------------------------------
+
+export async function getActiveTripId(): Promise<number | null> {
+  try {
+    const supabase = await createClient()
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data, error } = await supabase
+      .from('trips')
+      .select('id, departure_date, return_date')
+      .gte('return_date', today)
+      .order('departure_date', { ascending: true })
+      .limit(1)
+
+    if (error || !data || data.length === 0) return null
+
+    const trip = data[0] as { id: number; departure_date: string; return_date: string }
+    const departure = new Date(trip.departure_date)
+    const returnDate = new Date(trip.return_date)
+    const now = new Date()
+
+    const windowStart = new Date(departure)
+    windowStart.setDate(windowStart.getDate() - 14)
+    const windowEnd = new Date(returnDate)
+    windowEnd.setDate(windowEnd.getDate() + 1)
+
+    if (now >= windowStart && now <= windowEnd) {
+      return trip.id
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Staff Roster
 // ---------------------------------------------------------------------------
 

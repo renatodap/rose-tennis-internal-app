@@ -4,7 +4,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Plane, Calendar, MapPin, Users, ChevronRight } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, differenceInDays, parseISO, isWithinInterval } from 'date-fns'
+
+function getTripStatus(departureDate: string, returnDate: string) {
+  const now = new Date()
+  const departure = parseISO(departureDate)
+  const returnD = parseISO(returnDate)
+
+  const isActive = isWithinInterval(now, { start: departure, end: returnD })
+  const isPast = now > returnD
+  const daysUntil = differenceInDays(departure, now)
+  const totalDays = differenceInDays(returnD, departure) + 1
+  const currentDay = isActive ? differenceInDays(now, departure) + 1 : 0
+
+  if (isPast)
+    return { text: 'Completed', color: 'bg-gray-100 text-gray-600' }
+  if (isActive)
+    return {
+      text: `Day ${currentDay} of ${totalDays}`,
+      color: 'bg-rose-red text-white',
+    }
+  if (daysUntil <= 1)
+    return {
+      text: daysUntil === 0 ? 'Today!' : 'Tomorrow!',
+      color: 'bg-green-600 text-white',
+    }
+  return { text: `In ${daysUntil} days`, color: 'bg-green-600 text-white' }
+}
 
 export default async function TripsPage() {
   const trips = await getTrips()
@@ -18,108 +44,157 @@ export default async function TripsPage() {
         </div>
         <div>
           <h1 className="text-xl font-semibold">Team Trips</h1>
-          <p className="text-sm text-muted-foreground">Upcoming travel and tournaments</p>
+          <p className="text-sm text-muted-foreground">
+            Upcoming travel and tournaments
+          </p>
         </div>
       </div>
 
       {trips && trips.length > 0 ? (
         <div className="space-y-4">
           {trips.map((trip) => {
-            const menRoster = trip.trip_roster?.filter(r => r.player?.gender === 'male') || []
-            const womenRoster = trip.trip_roster?.filter(r => r.player?.gender === 'female') || []
-            const confirmedMen = menRoster.filter(r => r.status === 'confirmed').length
-            const confirmedWomen = womenRoster.filter(r => r.status === 'confirmed').length
+            const menRoster =
+              trip.trip_roster?.filter(
+                (r) => r.player?.gender === 'male'
+              ) || []
+            const womenRoster =
+              trip.trip_roster?.filter(
+                (r) => r.player?.gender === 'female'
+              ) || []
+            const confirmedMen = menRoster.filter(
+              (r) => r.status === 'confirmed'
+            ).length
+            const confirmedWomen = womenRoster.filter(
+              (r) => r.status === 'confirmed'
+            ).length
+            const status = getTripStatus(
+              trip.departure_date,
+              trip.return_date
+            )
 
             return (
-              <Link key={trip.id} href={`/trips/${trip.id}`} className="block">
-              <Card className="border-rose-silver/30 hover:border-rose-red/30 transition-colors">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{trip.name}</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-green-600">Upcoming</Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <Link
+                key={trip.id}
+                href={`/trips/${trip.id}`}
+                className="block"
+              >
+                <Card className="border-rose-silver/30 hover:border-rose-red/30 transition-colors">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg">
+                        {trip.name}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge className={status.color}>
+                          {status.text}
+                        </Badge>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Trip Details */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-rose-red" />
-                      <span>{trip.destination}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-rose-red" />
-                      <span>
-                        {format(new Date(trip.departure_date), 'MMM d')} -{' '}
-                        {format(new Date(trip.return_date), 'MMM d')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Roster Counts */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Men</span>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Trip Details */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-rose-red" />
+                        <span>{trip.destination}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-rose-red"
-                            style={{ width: `${(confirmedMen / trip.max_men) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {confirmedMen}/{trip.max_men}
+                        <Calendar className="h-4 w-4 text-rose-red" />
+                        <span>
+                          {format(
+                            new Date(trip.departure_date),
+                            'MMM d'
+                          )}{' '}
+                          -{' '}
+                          {format(
+                            new Date(trip.return_date),
+                            'MMM d'
+                          )}
                         </span>
                       </div>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Women</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-rose-red"
-                            style={{ width: `${(confirmedWomen / trip.max_women) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {confirmedWomen}/{trip.max_women}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Notes */}
-                  {trip.notes && (
-                    <>
-                      <Separator />
-                      <p className="text-sm text-muted-foreground">{trip.notes}</p>
-                    </>
-                  )}
+                    <Separator />
 
-                  {/* Flight Info */}
-                  {trip.flight_info && (
-                    <>
-                      <Separator />
+                    {/* Roster Counts */}
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <h4 className="text-sm font-medium mb-1">Flight Information</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {trip.flight_info}
-                        </p>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">
+                            Men
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-rose-red"
+                              style={{
+                                width: `${
+                                  (confirmedMen / trip.max_men) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {confirmedMen}/{trip.max_men}
+                          </span>
+                        </div>
                       </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">
+                            Women
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-rose-red"
+                              style={{
+                                width: `${
+                                  (confirmedWomen / trip.max_women) *
+                                  100
+                                }%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {confirmedWomen}/{trip.max_women}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notes */}
+                    {trip.notes && (
+                      <>
+                        <Separator />
+                        <p className="text-sm text-muted-foreground">
+                          {trip.notes}
+                        </p>
+                      </>
+                    )}
+
+                    {/* Flight Info */}
+                    {trip.flight_info && (
+                      <>
+                        <Separator />
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">
+                            Flight Information
+                          </h4>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {trip.flight_info}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </Link>
             )
           })}
