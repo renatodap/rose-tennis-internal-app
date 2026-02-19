@@ -48,7 +48,7 @@ export async function getTrip(id: number): Promise<Trip | null> {
     .single()
 
   if (error) throw error
-  return data as Trip | null
+  return data as (Trip & { logistics: Record<string, unknown> | null }) | null
 }
 
 export async function updateTripRosterStatus(

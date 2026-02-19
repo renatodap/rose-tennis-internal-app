@@ -8,6 +8,7 @@ const publicRoutes = [
   '/updates',
   '/notes',
   '/roster',
+  '/trips',
   '/login',
   '/auth/callback',
   '/reset-password',
@@ -27,6 +28,7 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/updates/')) return true
   if (pathname.startsWith('/notes/')) return true
   if (pathname.startsWith('/roster/')) return true
+  if (pathname.startsWith('/trips')) return true
 
   return false
 }

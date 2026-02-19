@@ -108,6 +108,21 @@ export interface MatchDetails {
   result: MatchResult
 }
 
+export type TripScheduleCategory = 'travel' | 'match' | 'meal' | 'prep' | 'free' | 'recovery' | 'other'
+export type TripMealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+export type GroceryCategory = 'produce' | 'meat' | 'dairy' | 'bakery' | 'frozen' | 'canned' | 'dry_goods' | 'condiments' | 'spices' | 'breakfast' | 'snacks' | 'beverages' | 'household'
+export type ShoppingTeam = 'alpha' | 'bravo' | 'charlie'
+export type TripTaskCategory = 'cooking' | 'dishes' | 'cleanup' | 'shopping' | 'packing' | 'driving' | 'night_prep' | 'other'
+
+export interface TripLogistics {
+  condo?: { address: string; resort: string; check_in: string; check_out: string; bedrooms: number; notes: string }
+  kitchen_equipment?: string[]
+  fridge_zones?: Record<string, string>
+  food_safety?: string[]
+  nutrition_targets?: { kcal: number; carbs_g: number; protein_g: number; fat_g: number; hydration_oz: number }
+  travel?: { van_count: number; driving_distances: Record<string, string> }
+}
+
 export interface Trip {
   id: number
   name: string
@@ -118,8 +133,85 @@ export interface Trip {
   max_women: number
   notes: string | null
   flight_info: string | null
+  logistics: TripLogistics | null
   created_at: string
   trip_roster?: TripRoster[]
+}
+
+export interface TripScheduleEntry {
+  id: number
+  trip_id: number
+  day_date: string
+  start_time: string
+  end_time: string | null
+  title: string
+  category: TripScheduleCategory
+  description: string | null
+  location: string | null
+  drive_info: { destination: string; distance_mi: number; drive_time_min: number; route_notes?: string; i4_risk?: string } | null
+  sort_order: number
+}
+
+export interface TripMeal {
+  id: number
+  trip_id: number
+  day_date: string
+  meal_type: TripMealType
+  name: string
+  description: string | null
+  recipe_content: string | null
+  prep_time_min: number | null
+  cook_time_min: number | null
+  nutrition: { kcal: number; carbs_g: number; protein_g: number; fat_g: number } | null
+  sort_order: number
+}
+
+export interface TripGroceryItem {
+  id: number
+  trip_id: number
+  item_name: string
+  quantity: string | null
+  estimated_price: number | null
+  category: GroceryCategory
+  shopping_team: ShoppingTeam | null
+  meal_use: string | null
+  is_purchased: boolean
+  purchased_by: number | null
+  purchaser?: Player
+  sort_order: number
+}
+
+export interface TripTask {
+  id: number
+  trip_id: number
+  day_date: string
+  time_slot: string | null
+  title: string
+  description: string | null
+  category: TripTaskCategory
+  slots_needed: number
+  sort_order: number
+  signups?: TripTaskSignup[]
+}
+
+export interface TripTaskSignup {
+  id: number
+  task_id: number
+  player_id: number
+  signed_up_at: string
+  completed_at: string | null
+  player?: Player
+}
+
+export interface TripStaffMember {
+  id: number
+  trip_id: number
+  staff_id: number | null
+  name: string
+  role_on_trip: string | null
+  start_date: string | null
+  end_date: string | null
+  notes: string | null
 }
 
 export interface TripRoster {
@@ -223,6 +315,42 @@ export interface Database {
         Row: Omit<Trip, 'trip_roster'>
         Insert: Omit<Trip, 'id' | 'created_at' | 'trip_roster'>
         Update: Partial<Omit<Trip, 'id' | 'created_at' | 'trip_roster'>>
+        Relationships: []
+      }
+      trip_schedule: {
+        Row: TripScheduleEntry
+        Insert: Omit<TripScheduleEntry, 'id'>
+        Update: Partial<Omit<TripScheduleEntry, 'id'>>
+        Relationships: []
+      }
+      trip_meals: {
+        Row: TripMeal
+        Insert: Omit<TripMeal, 'id'>
+        Update: Partial<Omit<TripMeal, 'id'>>
+        Relationships: []
+      }
+      trip_grocery_items: {
+        Row: Omit<TripGroceryItem, 'purchaser'>
+        Insert: Omit<TripGroceryItem, 'id' | 'purchaser'>
+        Update: Partial<Omit<TripGroceryItem, 'id' | 'purchaser'>>
+        Relationships: []
+      }
+      trip_tasks: {
+        Row: Omit<TripTask, 'signups'>
+        Insert: Omit<TripTask, 'id' | 'signups'>
+        Update: Partial<Omit<TripTask, 'id' | 'signups'>>
+        Relationships: []
+      }
+      trip_task_signups: {
+        Row: Omit<TripTaskSignup, 'player'>
+        Insert: Omit<TripTaskSignup, 'id' | 'signed_up_at' | 'player'>
+        Update: Partial<Omit<TripTaskSignup, 'id' | 'signed_up_at' | 'player'>>
+        Relationships: []
+      }
+      trip_staff_roster: {
+        Row: TripStaffMember
+        Insert: Omit<TripStaffMember, 'id'>
+        Update: Partial<Omit<TripStaffMember, 'id'>>
         Relationships: []
       }
       trip_roster: {

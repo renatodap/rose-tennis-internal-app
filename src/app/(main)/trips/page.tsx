@@ -1,8 +1,9 @@
+import Link from 'next/link'
 import { getTrips } from '@/lib/actions/trips'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Plane, Calendar, MapPin, Users } from 'lucide-react'
+import { Plane, Calendar, MapPin, Users, ChevronRight } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default async function TripsPage() {
@@ -30,11 +31,15 @@ export default async function TripsPage() {
             const confirmedWomen = womenRoster.filter(r => r.status === 'confirmed').length
 
             return (
-              <Card key={trip.id} className="border-rose-silver/30">
+              <Link key={trip.id} href={`/trips/${trip.id}`} className="block">
+              <Card className="border-rose-silver/30 hover:border-rose-red/30 transition-colors">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{trip.name}</CardTitle>
-                    <Badge className="bg-green-600">Upcoming</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-600">Upcoming</Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -115,6 +120,7 @@ export default async function TripsPage() {
                   )}
                 </CardContent>
               </Card>
+              </Link>
             )
           })}
         </div>
